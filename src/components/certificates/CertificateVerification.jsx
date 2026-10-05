@@ -4,7 +4,7 @@ export default function CertificateVerification({ certificate }) {
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-xl font-bold text-[#0F172A]">Certificate Verification</h2>
         <span className="inline-flex items-center rounded-full border border-[#BBF7D0] bg-[#ECFDF5] px-2.5 py-1 text-xs font-semibold text-[#166534]">
-          Verified
+          Demo Record
         </span>
       </div>
 
@@ -14,7 +14,7 @@ export default function CertificateVerification({ certificate }) {
       </div>
 
       <p className="mt-4 text-sm leading-7 text-[#475569]">
-        This certificate was issued by EduLearn for successful completion of the course.
+        This is a demonstration certificate record. No live or cryptographic verification is performed.
       </p>
     </section>
   );

@@ -20,6 +20,10 @@ import {
   Settings,
   GraduationCap,
   UserCheck,
+  Activity,
+  ShieldCheck,
+  BriefcaseBusiness,
+  Plug,
 } from "lucide-react";
 
 const navItems = [
@@ -28,6 +32,7 @@ const navItems = [
   { label: "All Users", href: "/admin/users", icon: Users },
   { label: "Students", href: "/admin/students", icon: GraduationCap },
   { label: "Instructors", href: "/admin/instructors", icon: UserCheck },
+  { label: "Staff", href: "/admin/staff", icon: BriefcaseBusiness },
   { type: "divider" },
   { label: "Courses", href: "/admin/courses", icon: BookOpen },
   { label: "Categories", href: "/admin/categories", icon: Layers },
@@ -44,8 +49,10 @@ const navItems = [
   { type: "divider" },
   { label: "Reports", href: "/admin/reports", icon: BarChart3 },
   { label: "Notifications", href: "/admin/notifications", icon: Bell },
+  { label: "Integrations", href: "/admin/integrations", icon: Plug },
   { label: "Audit Logs", href: "/admin/audit-logs", icon: ClipboardList },
   { label: "System Health", href: "/admin/system-health", icon: Activity },
+  { label: "Roles & Permissions", href: "/admin/roles-permissions", icon: ShieldCheck },
   { label: "Settings", href: "/admin/settings", icon: Settings },
 ];
 

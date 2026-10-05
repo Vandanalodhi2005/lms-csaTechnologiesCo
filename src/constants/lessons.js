@@ -1,3 +1,5 @@
+import { studentCourseLearning } from "@/constants/studentCourseLearning.js";
+
 export const courseLessons = {
   "react-nextjs-complete-course": {
     course: {
@@ -131,6 +133,36 @@ export const courseLessons = {
         ],
       },
     ],
+  },
+  [studentCourseLearning.slug]: {
+    course: {
+      slug: studentCourseLearning.slug,
+      title: studentCourseLearning.title,
+      category: studentCourseLearning.category,
+      level: studentCourseLearning.level,
+      durationLabel: studentCourseLearning.totalDuration,
+      lessonCount: studentCourseLearning.totalLessons,
+      instructorName: studentCourseLearning.instructor.name,
+      instructorSlug: studentCourseLearning.instructor.slug,
+      instructorRole: studentCourseLearning.instructor.title,
+      thumbnail: studentCourseLearning.thumbnail,
+    },
+    sections: studentCourseLearning.sections.map((section) => ({
+      sectionId: section.id,
+      sectionTitle: section.title,
+      lessons: section.lessons.map((lesson) => ({
+        id: lesson.id,
+        title: lesson.title,
+        duration: lesson.duration,
+        type: lesson.type,
+        videoUrl: "",
+        poster: studentCourseLearning.thumbnail,
+        description: lesson.description,
+        isPreview: lesson.number === 1,
+        isLocked: lesson.locked,
+        isCompleted: lesson.completed,
+      })),
+    })),
   },
 };
 

@@ -32,7 +32,7 @@ export default function CertificatePreview({ certificate }) {
 
               <div className="hidden items-center gap-2 rounded-full border border-[#D5E7FF] bg-[#EFF6FF] px-2.5 py-1 text-xs font-medium text-[#1D4ED8] sm:flex">
                 <BadgeCheck className="h-4 w-4" aria-hidden="true" />
-                Verified
+                Demo Record
               </div>
             </div>
 

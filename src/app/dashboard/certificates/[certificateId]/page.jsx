@@ -9,7 +9,7 @@ import CertificateActions from "@/components/certificates/CertificateActions.jsx
 import CertificateInfo from "@/components/certificates/CertificateInfo.jsx";
 import CertificateVerification from "@/components/certificates/CertificateVerification.jsx";
 import CertificateCourseSummary from "@/components/certificates/CertificateCourseSummary.jsx";
-import { certificates } from "@/constants/certificates.js";
+import { studentCertificates as certificates } from "@/constants/studentCertificates.js";
 
 export async function generateMetadata({ params }) {
   const certificate = certificates.find((item) => item.id === params?.certificateId);

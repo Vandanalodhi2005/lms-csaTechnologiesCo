@@ -7,9 +7,9 @@ import { cn } from "@/utils";
 
 const navigation = [
   { label: "Dashboard", href: "/dashboard", icon: Home, exact: true },
-  { label: "My Courses", href: "/courses", icon: BookOpen },
+  { label: "My Courses", href: "/dashboard/courses", icon: BookOpen },
   { label: "Learning Progress", href: "/dashboard/progress", icon: BarChart3 },
-  { label: "Assignments", href: "/courses", icon: FileText },
+  { label: "Assignments", href: "/dashboard/assignments", icon: FileText },
   { label: "Quizzes", href: "/courses", icon: ClipboardCheck },
   { label: "Certificates", href: "/dashboard/certificates", icon: Award },
   { label: "Wishlist", href: "/courses", icon: Heart },
@@ -69,7 +69,7 @@ export default function StudentMobileNav({ currentPath = "/dashboard" }) {
 
                 return (
                   <Link
-                    key={item.href}
+                    key={item.label}
                     href={item.href}
                     onClick={() => setOpen(false)}
                     className={cn(
