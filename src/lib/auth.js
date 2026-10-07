@@ -2,7 +2,8 @@ import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import { COOKIE_NAME } from "@/constants";
 
-const JWT_SECRET = process.env.JWT_SECRET;
+const FALLBACK_JWT_SECRET = "development-secret-change-me";
+const JWT_SECRET = process.env.JWT_SECRET || (process.env.NODE_ENV === "production" ? undefined : FALLBACK_JWT_SECRET);
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "7d";
 
 if (!JWT_SECRET) {
