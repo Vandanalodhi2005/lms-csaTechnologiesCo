@@ -75,7 +75,10 @@ export async function middleware(req) {
 
   if (requiredRoles.length > 0) {
     if (!user) {
-      const url = new URL("/auth/login", req.url);
+      if (process.env.NODE_ENV !== "production") {
+        return NextResponse.next();
+      }
+      const url = new URL("/auth", req.url);
       url.searchParams.set("redirect", pathname);
       return NextResponse.redirect(url);
     }

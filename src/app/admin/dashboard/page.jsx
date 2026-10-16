@@ -1,646 +1,585 @@
+"use client";
+
+import * as React from "react";
 import Link from "next/link";
 import {
-  AlertTriangle,
-  ArrowRight,
-  BarChart3,
-  Bell,
-  BookOpen,
-  BriefcaseBusiness,
-  Building2,
-  CheckCircle2,
-  ChevronRight,
-  CreditCard,
-  FileText,
-  LayoutDashboard,
-  Search,
-  ShieldCheck,
-  Star,
-  TrendingUp,
-  UserCheck,
   Users,
+  BookOpen,
+  Clock,
+  ScreenShare,
+  TrendingUp,
+  TrendingDown,
+  Sparkles,
+  FileText,
+  Star,
+  ChevronDown,
+  ArrowUpDown,
+  Layers,
+  HelpCircle,
+  Award,
 } from "lucide-react";
 import Avatar from "@/components/ui/Avatar.jsx";
-import Badge from "@/components/ui/Badge.jsx";
-import Button from "@/components/ui/Button.jsx";
-import { adminDashboardData } from "@/constants/adminDashboard.js";
 
-export const metadata = {
-  title: "Admin Dashboard | EduLearn",
-  description: "Overview of platform growth, course performance, payments, users, and platform health.",
-};
+// Initial engagement data
+const initialEngagementData = [
+  { course: "Web Development", enrollments: 450, completionRate: 75, avgQuizScore: 85 },
+  { course: "Data Science", enrollments: 350, completionRate: 68, avgQuizScore: 85 },
+  { course: "Mobile App Development", enrollments: 280, completionRate: 82, avgQuizScore: 90 },
+  { course: "Machine Learning", enrollments: 500, completionRate: 90, avgQuizScore: 92 },
+  { course: "UI/UX Design", enrollments: 600, completionRate: 76, avgQuizScore: 88 },
+  { course: "Cloud Computing", enrollments: 720, completionRate: 85, avgQuizScore: 76 },
+  { course: "Cybersecurity", enrollments: 430, completionRate: 63, avgQuizScore: 95 },
+  { course: "Game Development", enrollments: 390, completionRate: 79, avgQuizScore: 89 },
+];
 
-const currencyFormatter = new Intl.NumberFormat("en-IN", {
-  style: "currency",
-  currency: "INR",
-  maximumFractionDigits: 0,
-});
+const chartBars = [
+  { label: "Web Development", value: 270, heightPercent: 45, enrollment: 270 },
+  { label: "Data Science", value: 240, heightPercent: 40, enrollment: 240 },
+  { label: "UX Design", value: 485, heightPercent: 81, enrollment: 485, isHighlighted: true },
+  { label: "Python Basics", value: 300, heightPercent: 50, enrollment: 300 },
+  { label: "Digital Marketing", value: 360, heightPercent: 60, enrollment: 360 },
+];
 
-const numberFormatter = new Intl.NumberFormat("en-IN");
-
-const statIcons = {
-  users: Users,
-  students: GraduationCapIcon,
-  instructors: UserCheck,
-  courses: BookOpen,
-  published: CheckCircle2,
-  approvals: AlertTriangle,
-  enrollments: BriefcaseBusiness,
-  revenue: CreditCard,
-};
-
-function formatCurrency(value) {
-  const amount = Number(value || 0);
-  return currencyFormatter.format(amount);
-}
-
-function formatNumber(value) {
-  const number = Number(value || 0);
-  return numberFormatter.format(number);
-}
-
-function statusBadgeVariant(status) {
-  const normalized = status?.toLowerCase();
-  if (normalized === "active" || normalized === "published" || normalized === "completed" || normalized === "operational") return "success";
-  if (normalized === "pending" || normalized === "pending review" || normalized === "mock mode") return "warning";
-  if (normalized === "suspended" || normalized === "draft") return "secondary";
-  return "default";
-}
-
-function getActivityIcon(type) {
-  if (type === "user") return UserCheck;
-  if (type === "course") return BookOpen;
-  if (type === "enrollment") return BriefcaseBusiness;
-  if (type === "review") return Star;
-  return ShieldCheck;
-}
-
-function getInitials(name) {
-  return name
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() || "")
-    .join("") || "AD";
-}
-
-function RevenueChart() {
-  const { months, values } = adminDashboardData.revenue;
-  const chartHeight = 190;
-  const chartWidth = 560;
-  const max = Math.max(...values);
-  const min = Math.min(...values);
-  const range = Math.max(max - min, 1);
-
-  const points = values
-    .map((value, index) => {
-      const x = (index / (values.length - 1)) * chartWidth;
-      const y = chartHeight - ((value - min) / range) * (chartHeight - 25) - 8;
-      return `${x},${y}`;
-    })
-    .join(" ");
-
-  return (
-    <div className="rounded-[28px] border border-[#E2E8F0] bg-white p-5 shadow-sm md:p-6">
-      <div className="mb-5 flex items-center justify-between gap-3">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#2563EB]">Sales overview</p>
-          <h2 className="mt-2 text-2xl font-bold tracking-tight text-[#0F172A]">Platform Revenue</h2>
-        </div>
-        <div className="flex items-center gap-2 rounded-full border border-[#E2E8F0] bg-[#F8FAFC] px-3 py-1.5 text-xs font-medium text-[#475569]">
-          <TrendingUp className="h-3.5 w-3.5 text-[#16A34A]" aria-hidden="true" />
-          +8.4% vs last month
-        </div>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-3">
-        <div className="rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] p-4">
-          <p className="text-xs font-medium uppercase tracking-[0.12em] text-[#64748B]">This Month</p>
-          <p className="mt-2 text-2xl font-bold text-[#0F172A]">{formatCurrency(adminDashboardData.revenue.summary.thisMonth)}</p>
-        </div>
-        <div className="rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] p-4">
-          <p className="text-xs font-medium uppercase tracking-[0.12em] text-[#64748B]">This Year</p>
-          <p className="mt-2 text-2xl font-bold text-[#0F172A]">{formatCurrency(adminDashboardData.revenue.summary.thisYear)}</p>
-        </div>
-        <div className="rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] p-4">
-          <p className="text-xs font-medium uppercase tracking-[0.12em] text-[#64748B]">Previous Month</p>
-          <p className="mt-2 text-2xl font-bold text-[#0F172A]">{formatCurrency(adminDashboardData.revenue.summary.previousMonth)}</p>
-        </div>
-      </div>
-
-      <div className="mt-6 rounded-[24px] border border-[#E2E8F0] bg-[#F8FAFC] p-4">
-        <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} className="h-52 w-full" role="img" aria-label="Revenue chart for Apr to Sep showing values from ₹3,20,000 to ₹4,85,000.">
-          {[0, 1, 2, 3].map((row) => {
-            const y = 18 + row * 42;
-            return <line key={row} x1="0" x2={chartWidth} y1={y} y2={y} stroke="#E2E8F0" strokeDasharray="4 6" />;
-          })}
-          <polyline
-            fill="none"
-            stroke="#2563EB"
-            strokeWidth="4"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            points={points}
-          />
-          {values.map((value, index) => {
-            const x = (index / (values.length - 1)) * chartWidth;
-            const y = chartHeight - ((value - min) / range) * (chartHeight - 25) - 8;
-            return (
-              <g key={months[index]}>
-                <circle cx={x} cy={y} r="4.5" fill="#2563EB" />
-                <text x={x} y={chartHeight - 2} textAnchor="middle" fontSize="11" fill="#64748B">{months[index]}</text>
-                <title>{`${months[index]} revenue: ${formatCurrency(value)}`}</title>
-              </g>
-            );
-          })}
-        </svg>
-      </div>
-    </div>
-  );
-}
-
-function UserGrowthChart() {
-  const { labels, students, instructors } = adminDashboardData.userGrowth;
-  const width = 520;
-  const height = 210;
-  const padding = { top: 15, right: 15, bottom: 30, left: 25 };
-
-  const buildLine = (values) => {
-    const max = Math.max(...values);
-    const min = Math.min(...values);
-    const range = Math.max(max - min, 1);
-
-    return values
-      .map((value, index) => {
-        const x = padding.left + (index / (values.length - 1)) * (width - padding.left - padding.right);
-        const y = height - padding.bottom - ((value - min) / range) * (height - padding.top - padding.bottom);
-        return `${x},${y}`;
-      })
-      .join(" ");
-  };
-
-  return (
-    <div className="rounded-[28px] border border-[#E2E8F0] bg-white p-5 shadow-sm md:p-6">
-      <div className="mb-5 flex items-center justify-between gap-3">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#2563EB]">Growth</p>
-          <h2 className="mt-2 text-2xl font-bold tracking-tight text-[#0F172A]">User Growth</h2>
-        </div>
-        <div className="flex items-center gap-4 text-xs text-[#64748B]">
-          <div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-[#2563EB]" />Students</div>
-          <div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-[#0EA5E9]" />Instructors</div>
-        </div>
-      </div>
-
-      <svg viewBox={`0 0 ${width} ${height}`} className="h-52 w-full" role="img" aria-label="User growth chart for students and instructors from April to September.">
-        {[0, 1, 2, 3].map((row) => (
-          <line key={row} x1={padding.left} x2={width - padding.right} y1={padding.top + row * 40} y2={padding.top + row * 40} stroke="#E2E8F0" strokeDasharray="4 6" />
-        ))}
-        <polyline fill="none" stroke="#2563EB" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" points={buildLine(students)} />
-        <polyline fill="none" stroke="#0EA5E9" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" points={buildLine(instructors)} />
-        {labels.map((label, index) => {
-          const x = padding.left + (index / (labels.length - 1)) * (width - padding.left - padding.right);
-          return <text key={label} x={x} y={height - 6} textAnchor="middle" fontSize="11" fill="#64748B">{label}</text>;
-        })}
-      </svg>
-    </div>
-  );
-}
+const initialActivities = [
+  {
+    id: 1,
+    type: "course_update",
+    title: "Updated Course",
+    actor: "Dr. Robert Chen",
+    target: "Advanced Data Structures",
+    time: "10 min ago",
+    starred: false,
+    avatarSrc: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80",
+  },
+  {
+    id: 2,
+    type: "submission",
+    title: "Submitted Assignment",
+    actor: "Raki Johnson",
+    target: "React Hooks Exercise",
+    extra: "Submission score: 92/100",
+    time: "30 min ago",
+    starred: false,
+    avatarSrc: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80",
+  },
+  {
+    id: 3,
+    type: "enrollment",
+    title: "Enrolled in",
+    isNew: true,
+    actor: "Tim Baker",
+    target: "Python for Beginners",
+    time: "4 hours ago",
+    starred: true,
+    avatarSrc: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&auto=format&fit=crop&q=80",
+  },
+];
 
 export default function AdminDashboardPage() {
-  const stats = [
-    { label: "Total Users", value: formatNumber(adminDashboardData.stats.totalUsers), icon: statIcons.users, change: "+8.4% this month" },
-    { label: "Total Students", value: formatNumber(adminDashboardData.stats.totalStudents), icon: statIcons.students, change: "+7.1% this month" },
-    { label: "Total Instructors", value: formatNumber(adminDashboardData.stats.totalInstructors), icon: statIcons.instructors, change: "+3.2% this month" },
-    { label: "Total Courses", value: formatNumber(adminDashboardData.stats.totalCourses), icon: statIcons.courses, change: "+2.6% this month" },
-    { label: "Published Courses", value: formatNumber(adminDashboardData.stats.publishedCourses), icon: statIcons.published, change: "+5.1% this month" },
-    { label: "Pending Approvals", value: formatNumber(adminDashboardData.stats.pendingApprovals), icon: statIcons.approvals, change: "Needs review" },
-    { label: "Total Enrollments", value: formatNumber(adminDashboardData.stats.enrollments), icon: statIcons.enrollments, change: "+9.8% this month" },
-    { label: "Platform Revenue", value: formatCurrency(adminDashboardData.stats.revenue), icon: statIcons.revenue, change: "+12.5% this month" },
-  ];
+  const [activeBar, setActiveBar] = React.useState("UX Design");
+  const [selectedPeriod, setSelectedPeriod] = React.useState("This Month");
+  const [periodDropdownOpen, setPeriodDropdownOpen] = React.useState(false);
+  const [activityTab, setActivityTab] = React.useState("All");
+  const [activities, setActivities] = React.useState(initialActivities);
+
+  // Sorting state for table
+  const [sortField, setSortField] = React.useState(null);
+  const [sortAsc, setSortAsc] = React.useState(true);
+
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortAsc(!sortAsc);
+    } else {
+      setSortField(field);
+      setSortAsc(true);
+    }
+  };
+
+  const sortedEngagementData = React.useMemo(() => {
+    if (!sortField) return initialEngagementData;
+    return [...initialEngagementData].sort((a, b) => {
+      let valA = a[sortField];
+      let valB = b[sortField];
+      if (typeof valA === "string") {
+        return sortAsc ? valA.localeCompare(valB) : valB.localeCompare(valA);
+      }
+      return sortAsc ? valA - valB : valB - valA;
+    });
+  }, [sortField, sortAsc]);
+
+  const toggleStar = (id) => {
+    setActivities((prev) =>
+      prev.map((act) => (act.id === id ? { ...act, starred: !act.starred } : act))
+    );
+  };
+
+  const filteredActivities = React.useMemo(() => {
+    if (activityTab === "All") return activities;
+    if (activityTab === "Enrollments") return activities.filter((a) => a.type === "enrollment");
+    if (activityTab === "Submissions") return activities.filter((a) => a.type === "submission");
+    if (activityTab === "Course Updates") return activities.filter((a) => a.type === "course_update");
+    return activities;
+  }, [activityTab, activities]);
 
   return (
-    <div className="space-y-6">
-      <div className="rounded-[28px] border border-[#E2E8F0] bg-white p-5 shadow-sm md:p-6">
-        <nav aria-label="Breadcrumb" className="mb-5 flex items-center gap-2 text-sm text-[#64748B]">
-          <Link href="/admin/dashboard" className="hover:text-[#2563EB]">Admin</Link>
-          <ChevronRight className="h-4 w-4" aria-hidden="true" />
-          <span className="font-medium text-[#0F172A]">Dashboard</span>
-        </nav>
-
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#2563EB]">Admin overview</p>
-            <h1 className="mt-2 text-3xl font-bold tracking-tight text-[#0F172A] md:text-4xl">Admin Dashboard</h1>
-            <p className="mt-2 text-sm leading-6 text-[#475569] md:text-base">Monitor EduLearn activity, courses, users, and platform performance.</p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3">
-            <Button variant="outline" size="default" leftIcon={<Search className="h-4 w-4" aria-hidden="true" />} className="hidden md:inline-flex">
-              Quick Search
-            </Button>
-            <Button variant="ghost" size="icon" aria-label="Notifications" className="relative border border-[#E2E8F0] bg-[#F8FAFC] text-[#475569] hover:bg-[#F1F5F9]">
-              <Bell className="h-4 w-4" aria-hidden="true" />
-              <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-[#2563EB]" aria-hidden="true" />
-            </Button>
-            <div className="flex items-center gap-3 rounded-full border border-[#E2E8F0] bg-[#F8FAFC] px-3 py-2">
-              <Avatar name={adminDashboardData.admin.name} size="sm" />
-              <div className="hidden sm:block">
-                <p className="text-sm font-semibold text-[#0F172A]">{adminDashboardData.admin.name}</p>
-                <p className="text-[11px] text-[#64748B]">{adminDashboardData.admin.role}</p>
-              </div>
-            </div>
-          </div>
-        </div>
+    <div className="space-y-6 animate-fadeIn pb-12">
+      {/* Welcome Greeting */}
+      <div>
+        <h1 className="text-2xl sm:text-[28px] font-bold text-slate-900 tracking-tight">
+          Welcome back, Chelsea
+        </h1>
       </div>
 
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {stats.map((stat) => {
-          const Icon = stat.icon;
-          return (
-            <article key={stat.label} className="rounded-[24px] border border-[#E2E8F0] bg-white p-5 shadow-sm">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-sm text-[#64748B]">{stat.label}</p>
-                  <p className="mt-3 text-3xl font-bold tracking-tight text-[#0F172A]">{stat.value}</p>
-                </div>
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#EFF6FF] text-[#2563EB]">
-                  <Icon className="h-5 w-5" aria-hidden="true" />
-                </div>
-              </div>
-              <div className="mt-4 flex items-center gap-2 text-xs font-medium text-[#16A34A]">
-                <TrendingUp className="h-3.5 w-3.5" aria-hidden="true" />
-                <span>{stat.change}</span>
-              </div>
-            </article>
-          );
-        })}
+      {/* Top 4 Stat Cards */}
+      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Card 1: Total Instructors */}
+        <div className="bg-white rounded-2xl border border-slate-200/80 p-4 sm:p-5 flex items-center gap-4 shadow-[0_1px_3px_rgba(0,0,0,0.02)] hover:shadow-md transition-all">
+          <div className="w-12 h-12 rounded-xl bg-[#2563EB] text-white flex items-center justify-center shrink-0 shadow-sm">
+            <ScreenShare className="w-6 h-6" />
+          </div>
+          <div>
+            <p className="text-xs font-medium text-slate-500">Total Instructors</p>
+            <p className="text-2xl sm:text-3xl font-bold text-slate-900 mt-0.5 tracking-tight">
+              128
+            </p>
+          </div>
+        </div>
+
+        {/* Card 2: Active Students */}
+        <div className="bg-white rounded-2xl border border-slate-200/80 p-4 sm:p-5 flex items-center gap-4 shadow-[0_1px_3px_rgba(0,0,0,0.02)] hover:shadow-md transition-all">
+          <div className="w-12 h-12 rounded-xl bg-[#22C55E] text-white flex items-center justify-center shrink-0 shadow-sm">
+            <Users className="w-6 h-6" />
+          </div>
+          <div>
+            <p className="text-xs font-medium text-slate-500">Active Students</p>
+            <p className="text-2xl sm:text-3xl font-bold text-slate-900 mt-0.5 tracking-tight">
+              4,532
+            </p>
+          </div>
+        </div>
+
+        {/* Card 3: Courses Published */}
+        <div className="bg-white rounded-2xl border border-slate-200/80 p-4 sm:p-5 flex items-center gap-4 shadow-[0_1px_3px_rgba(0,0,0,0.02)] hover:shadow-md transition-all">
+          <div className="w-12 h-12 rounded-xl bg-[#F59E0B] text-white flex items-center justify-center shrink-0 shadow-sm">
+            <BookOpen className="w-6 h-6" />
+          </div>
+          <div>
+            <p className="text-xs font-medium text-slate-500">Courses Published</p>
+            <p className="text-2xl sm:text-3xl font-bold text-slate-900 mt-0.5 tracking-tight">
+              67
+            </p>
+          </div>
+        </div>
+
+        {/* Card 4: Pending Submissions */}
+        <div className="bg-white rounded-2xl border border-slate-200/80 p-4 sm:p-5 flex items-center gap-4 shadow-[0_1px_3px_rgba(0,0,0,0.02)] hover:shadow-md transition-all">
+          <div className="w-12 h-12 rounded-xl bg-[#F87171] text-white flex items-center justify-center shrink-0 shadow-sm">
+            <Clock className="w-6 h-6" />
+          </div>
+          <div>
+            <p className="text-xs font-medium text-slate-500">Pending Submissions</p>
+            <p className="text-2xl sm:text-3xl font-bold text-slate-900 mt-0.5 tracking-tight">
+              152
+            </p>
+          </div>
+        </div>
       </section>
 
-      <div className="grid gap-6 xl:grid-cols-[1.5fr_0.9fr]">
-        <RevenueChart />
+      {/* Main Two-Column Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* Left Column (approx 62%) */}
+        <div className="lg:col-span-8 space-y-6">
+          {/* Card 1: Top Engaged Courses */}
+          <div className="bg-white rounded-2xl border border-slate-200/80 p-5 sm:p-6 shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-base font-bold text-slate-900 tracking-tight">
+                Top Engaged Courses
+              </h2>
 
-        <aside className="rounded-[28px] border border-[#E2E8F0] bg-white p-5 shadow-sm md:p-6">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#EFF6FF] text-[#2563EB]">
-              <LayoutDashboard className="h-5 w-5" aria-hidden="true" />
+              <div className="relative">
+                <button
+                  onClick={() => setPeriodDropdownOpen((v) => !v)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-xs font-medium text-slate-700 shadow-2xs transition-colors"
+                >
+                  <span>{selectedPeriod}</span>
+                  <ChevronDown className="w-3.5 h-3.5 text-slate-500" />
+                </button>
+
+                {periodDropdownOpen && (
+                  <div className="absolute right-0 top-full mt-1.5 w-32 bg-white rounded-xl shadow-lg border border-slate-100 py-1.5 z-20 animate-fadeIn">
+                    {["This Month", "Last Month", "This Year"].map((period) => (
+                      <button
+                        key={period}
+                        onClick={() => {
+                          setSelectedPeriod(period);
+                          setPeriodDropdownOpen(false);
+                        }}
+                        className="w-full text-left px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50 transition-colors"
+                      >
+                        {period}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#2563EB]">Profile</p>
-              <h2 className="mt-1 text-xl font-bold text-[#0F172A]">Admin User</h2>
+
+            {/* Bar Chart Area */}
+            <div className="relative pt-12 pb-6">
+              {/* Y-axis guidelines */}
+              <div className="absolute inset-x-0 top-12 bottom-12 flex flex-col justify-between pointer-events-none">
+                {[600, 450, 300, 150, 0].map((val) => (
+                  <div key={val} className="relative flex items-center">
+                    <span className="w-9 text-right text-[11px] font-medium text-slate-400 select-none pr-3">
+                      {val}
+                    </span>
+                    <div className="flex-1 border-b border-dashed border-slate-100" />
+                  </div>
+                ))}
+              </div>
+
+              {/* Bars container */}
+              <div className="relative ml-10 h-64 flex items-end justify-around pt-6">
+                {chartBars.map((bar) => {
+                  const isSelected = activeBar === bar.label;
+                  return (
+                    <div
+                      key={bar.label}
+                      onClick={() => setActiveBar(bar.label)}
+                      className="group relative flex flex-col items-center cursor-pointer h-full justify-end px-2"
+                    >
+                      {/* Floating Tooltip if selected */}
+                      {isSelected && (
+                        <div className="absolute bottom-[83%] z-20 flex flex-col items-center animate-fadeIn pointer-events-none mb-1">
+                          <div className="bg-white rounded-xl shadow-xl border border-slate-100 px-3 py-2 text-center whitespace-nowrap min-w-[100px]">
+                            <p className="text-[11px] font-semibold text-slate-800">
+                              {bar.label}
+                            </p>
+                            <span className="inline-block mt-1 bg-[#0284C7] text-white text-[10px] font-bold px-2 py-0.5 rounded-md">
+                              Enrollment: {bar.enrollment}
+                            </span>
+                          </div>
+                          {/* Triangle pointer */}
+                          <div className="w-2.5 h-2.5 bg-white border-r border-b border-slate-100 rotate-45 -mt-1.5 shadow-xs" />
+                        </div>
+                      )}
+
+                      {/* Bar Pillar */}
+                      <div
+                        style={{ height: `${bar.heightPercent}%` }}
+                        className={`w-11 sm:w-14 rounded-t-xl transition-all duration-300 relative ${
+                          isSelected
+                            ? "bg-gradient-to-t from-[#0284C7] to-[#38BDF8] shadow-[0_4px_12px_rgba(2,132,199,0.3)] ring-2 ring-[#0284C7]/20"
+                            : "bg-[#E0F2FE] hover:bg-[#BAE6FD]"
+                        }`}
+                      />
+
+                      {/* X-axis label */}
+                      <span className="mt-3 text-[11px] sm:text-xs font-medium text-slate-500 whitespace-nowrap text-center">
+                        {bar.label}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Bottom Amount & Trend */}
+            <div className="pt-2 border-t border-slate-100/80">
+              <p className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
+                $750,000
+              </p>
+              <div className="flex items-center gap-1.5 mt-1 text-xs font-semibold text-[#16A34A]">
+                <TrendingUp className="w-3.5 h-3.5" />
+                <span>10.3% Last 30 Days</span>
+              </div>
             </div>
           </div>
 
-          <div className="mt-5 flex items-center gap-4 rounded-[22px] border border-[#E2E8F0] bg-[#F8FAFC] p-4">
-            <Avatar name={adminDashboardData.admin.name} size="lg" />
-            <div className="min-w-0">
-              <p className="truncate text-base font-semibold text-[#0F172A]">{adminDashboardData.admin.name}</p>
-              <p className="text-sm text-[#64748B]">{adminDashboardData.admin.role}</p>
-            </div>
-          </div>
+          {/* Card 2: Engagement Breakdown */}
+          <div className="bg-white rounded-2xl border border-slate-200/80 p-5 sm:p-6 shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
+            <h2 className="text-base font-bold text-slate-900 tracking-tight mb-4">
+              Engagement Breakdown
+            </h2>
 
-          <div className="mt-5 space-y-3 text-sm text-[#475569]">
-            <div className="flex items-center justify-between gap-3 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-3">
-              <span>Last login</span>
-              <span className="font-semibold text-[#0F172A]">Today</span>
-            </div>
-            <div className="flex items-center justify-between gap-3 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-3">
-              <span>Active users</span>
-              <span className="font-semibold text-[#0F172A]">{formatNumber(13420)}</span>
-            </div>
-            <div className="flex items-center justify-between gap-3 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-3">
-              <span>Review queue</span>
-              <span className="font-semibold text-[#0F172A]">{adminDashboardData.stats.pendingApprovals}</span>
-            </div>
-          </div>
-        </aside>
-      </div>
-
-      <div className="grid gap-6 xl:grid-cols-[1.25fr_0.75fr]">
-        <UserGrowthChart />
-
-        <div className="rounded-[28px] border border-[#E2E8F0] bg-white p-5 shadow-sm md:p-6">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#ECFDF5] text-[#16A34A]">
-              <BarChart3 className="h-5 w-5" aria-hidden="true" />
-            </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#2563EB]">Overview</p>
-              <h2 className="mt-1 text-2xl font-bold tracking-tight text-[#0F172A]">Course Overview</h2>
-            </div>
-          </div>
-
-          <div className="mt-5 grid gap-3 sm:grid-cols-2">
-            <div className="rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] p-4">
-              <p className="text-sm text-[#64748B]">Total Courses</p>
-              <p className="mt-2 text-2xl font-bold text-[#0F172A]">{formatNumber(adminDashboardData.courseOverview.total)}</p>
-            </div>
-            <div className="rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] p-4">
-              <p className="text-sm text-[#64748B]">Published</p>
-              <p className="mt-2 text-2xl font-bold text-[#0F172A]">{formatNumber(adminDashboardData.courseOverview.published)}</p>
-            </div>
-            <div className="rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] p-4">
-              <p className="text-sm text-[#64748B]">Draft</p>
-              <p className="mt-2 text-2xl font-bold text-[#0F172A]">{formatNumber(adminDashboardData.courseOverview.draft)}</p>
-            </div>
-            <div className="rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] p-4">
-              <p className="text-sm text-[#64748B]">Pending Review</p>
-              <p className="mt-2 text-2xl font-bold text-[#0F172A]">{formatNumber(adminDashboardData.courseOverview.pending)}</p>
-            </div>
-            <div className="rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] p-4 sm:col-span-2">
-              <p className="text-sm text-[#64748B]">Archived</p>
-              <p className="mt-2 text-2xl font-bold text-[#0F172A]">{formatNumber(adminDashboardData.courseOverview.archived)}</p>
+            <div className="overflow-x-auto scrollbar-thin">
+              <table className="w-full text-left border-collapse min-w-[560px]">
+                <thead>
+                  <tr className="border-b border-slate-100 text-[11px] font-semibold text-slate-400 select-none">
+                    <th
+                      onClick={() => handleSort("course")}
+                      className="pb-3 pr-4 cursor-pointer hover:text-slate-700 transition-colors"
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <span>Course</span>
+                        <ArrowUpDown className="w-3 h-3 text-slate-300" />
+                      </div>
+                    </th>
+                    <th
+                      onClick={() => handleSort("enrollments")}
+                      className="pb-3 px-4 cursor-pointer hover:text-slate-700 transition-colors"
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <span>Enrollments</span>
+                        <ArrowUpDown className="w-3 h-3 text-slate-300" />
+                      </div>
+                    </th>
+                    <th
+                      onClick={() => handleSort("completionRate")}
+                      className="pb-3 px-4 cursor-pointer hover:text-slate-700 transition-colors"
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <span>Completion Rate</span>
+                        <ArrowUpDown className="w-3 h-3 text-slate-300" />
+                      </div>
+                    </th>
+                    <th
+                      onClick={() => handleSort("avgQuizScore")}
+                      className="pb-3 pl-4 cursor-pointer hover:text-slate-700 transition-colors"
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <span>Avg Quiz Score</span>
+                        <ArrowUpDown className="w-3 h-3 text-slate-300" />
+                      </div>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100/80 text-xs sm:text-sm">
+                  {sortedEngagementData.map((row) => (
+                    <tr
+                      key={row.course}
+                      className="hover:bg-slate-50/70 transition-colors group"
+                    >
+                      <td className="py-3.5 pr-4 font-medium text-slate-800 whitespace-nowrap">
+                        {row.course}
+                      </td>
+                      <td className="py-3.5 px-4 text-slate-600 whitespace-nowrap">
+                        {row.enrollments}
+                      </td>
+                      <td className="py-3.5 px-4 text-slate-600 whitespace-nowrap">
+                        {row.completionRate}%
+                      </td>
+                      <td className="py-3.5 pl-4 text-slate-600 whitespace-nowrap font-medium">
+                        {row.avgQuizScore} / 100
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
-      </div>
 
-      <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-        <section className="rounded-[28px] border border-[#E2E8F0] bg-white p-5 shadow-sm md:p-6">
-          <div className="mb-5 flex items-center justify-between gap-3">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#2563EB]">Approvals</p>
-              <h2 className="mt-2 text-2xl font-bold tracking-tight text-[#0F172A]">Pending Approvals</h2>
+        {/* Right Column (approx 38%) */}
+        <div className="lg:col-span-4 space-y-6">
+          {/* Card 1: Recent Activity */}
+          <div className="bg-white rounded-2xl border border-slate-200/80 p-5 sm:p-6 shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
+            <h2 className="text-base font-bold text-slate-900 tracking-tight">
+              Recent Activity
+            </h2>
+
+            {/* AI Summary Banner */}
+            <div className="mt-2.5 flex items-start gap-1.5 text-xs text-[#2563EB] font-medium leading-relaxed">
+              <Sparkles className="w-4 h-4 shrink-0 text-[#2563EB] mt-0.5" />
+              <span>
+                <strong className="font-semibold">AI Summary:</strong> 2 submissions, 1 new student, 2 course updates
+              </span>
             </div>
-            <Link href="/admin/courses" className="inline-flex items-center gap-2 text-sm font-semibold text-[#2563EB] hover:text-[#1D4ED8]">
-              Review all
-              <ArrowRight className="h-4 w-4" aria-hidden="true" />
-            </Link>
-          </div>
 
-          <div className="space-y-4">
-            {adminDashboardData.pendingApprovals.map((course) => (
-              <div key={course.id} className="flex flex-col gap-4 rounded-[22px] border border-[#E2E8F0] bg-[#F8FAFC] p-4 md:flex-row md:items-center md:justify-between">
-                <div className="min-w-0">
-                  <p className="truncate text-base font-semibold text-[#0F172A]">{course.title}</p>
-                  <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-[#64748B]">
-                    <span>{course.instructor}</span>
-                    <span className="hidden md:inline">•</span>
-                    <span>{course.submitted}</span>
+            {/* Filter Tabs */}
+            <div className="flex items-center gap-4 border-b border-slate-100 mt-4 overflow-x-auto scrollbar-none text-xs font-semibold text-slate-400">
+              {["All", "Enrollments", "Submissions", "Course Updates"].map((tab) => {
+                const isActive = activityTab === tab;
+                return (
+                  <button
+                    key={tab}
+                    onClick={() => setActivityTab(tab)}
+                    className={`pb-2.5 whitespace-nowrap transition-colors relative ${
+                      isActive
+                        ? "text-slate-900 font-bold border-b-2 border-blue-600"
+                        : "hover:text-slate-700"
+                    }`}
+                  >
+                    {tab}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Activity List */}
+            <div className="mt-4 divide-y divide-slate-100/70">
+              {filteredActivities.map((act) => (
+                <div key={act.id} className="py-3.5 first:pt-1 last:pb-1 flex items-start gap-3">
+                  <Avatar
+                    src={act.avatarSrc}
+                    name={act.actor}
+                    size="md"
+                    className="shrink-0 mt-0.5 rounded-full"
+                  />
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <p className="text-xs sm:text-sm font-bold text-slate-900">
+                        {act.title}
+                      </p>
+                      {act.isNew && (
+                        <span className="text-[10px] font-semibold text-blue-600 border border-blue-200 px-1.5 py-0.2 rounded">
+                          ☆ New
+                        </span>
+                      )}
+                    </div>
+
+                    <p className="text-xs text-slate-500 mt-0.5 truncate">
+                      <span>{act.actor} → </span>
+                      <span className="text-[#10B981] font-semibold hover:underline cursor-pointer">
+                        {act.target}
+                      </span>
+                    </p>
+
+                    {act.extra && (
+                      <p className="text-xs text-slate-400 mt-0.5">{act.extra}</p>
+                    )}
+
+                    <div className="flex items-center gap-1 text-[11px] text-slate-400 mt-1">
+                      <Clock className="w-3 h-3 text-slate-400" />
+                      <span>{act.time}</span>
+                    </div>
+                  </div>
+
+                  {/* Actions on right */}
+                  <div className="flex items-center gap-1 text-slate-400 shrink-0 self-center">
+                    <button
+                      className="p-1 hover:text-slate-600 hover:bg-slate-50 rounded"
+                      title="View file"
+                    >
+                      <FileText className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => toggleStar(act.id)}
+                      className="p-1 hover:text-amber-500 rounded transition-colors"
+                      title={act.starred ? "Unstar" : "Star"}
+                    >
+                      <Star
+                        className={`w-3.5 h-3.5 ${
+                          act.starred
+                            ? "fill-amber-400 text-amber-400"
+                            : "text-slate-300 hover:text-slate-500"
+                        }`}
+                      />
+                    </button>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <Badge variant="warning" size="sm">{course.status}</Badge>
-                  <Button href="/admin/courses" variant="outline" size="sm">Review</Button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section className="rounded-[28px] border border-[#E2E8F0] bg-white p-5 shadow-sm md:p-6">
-          <div className="mb-5 flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#EFF6FF] text-[#2563EB]">
-              <Users className="h-5 w-5" aria-hidden="true" />
-            </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#2563EB]">Members</p>
-              <h2 className="mt-1 text-2xl font-bold tracking-tight text-[#0F172A]">Recent Users</h2>
+              ))}
             </div>
           </div>
 
-          <div className="space-y-3">
-            {adminDashboardData.recentUsers.map((user) => (
-              <div key={user.id} className="flex items-center justify-between gap-3 rounded-[20px] border border-[#E2E8F0] bg-[#F8FAFC] p-3">
-                <div className="flex min-w-0 items-center gap-3">
-                  <Avatar name={user.name} size="md" />
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-[#0F172A]">{user.name}</p>
-                    <p className="truncate text-xs text-[#64748B]">{user.email}</p>
-                  </div>
-                </div>
-                <div className="hidden text-right xl:block">
-                  <p className="text-xs text-[#64748B]">{user.role}</p>
-                  <p className="text-xs text-[#64748B]">{user.joined}</p>
-                </div>
-                <Badge variant={statusBadgeVariant(user.status)} size="sm">{user.status}</Badge>
-              </div>
-            ))}
-          </div>
-        </section>
-      </div>
+          {/* Card 2: Assignment & Quiz Overview */}
+          <div className="bg-white rounded-2xl border border-slate-200/80 p-5 sm:p-6 shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
+            <h2 className="text-base font-bold text-slate-900 tracking-tight mb-5">
+              Assignment & Quiz Overview
+            </h2>
 
-      <div className="grid gap-6 xl:grid-cols-[1.25fr_0.75fr]">
-        <section className="rounded-[28px] border border-[#E2E8F0] bg-white p-5 shadow-sm md:p-6">
-          <div className="mb-5 flex items-center justify-between gap-3">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#2563EB]">Catalog</p>
-              <h2 className="mt-2 text-2xl font-bold tracking-tight text-[#0F172A]">Recent Courses</h2>
-            </div>
-            <Link href="/admin/courses" className="inline-flex items-center gap-2 text-sm font-semibold text-[#2563EB] hover:text-[#1D4ED8]">
-              View all
-              <ArrowRight className="h-4 w-4" aria-hidden="true" />
-            </Link>
-          </div>
-
-          <div className="space-y-3">
-            {adminDashboardData.recentCourses.map((course) => (
-              <div key={course.id} className="grid gap-3 rounded-[22px] border border-[#E2E8F0] bg-[#F8FAFC] p-4 md:grid-cols-[1.5fr_1fr_0.7fr_0.7fr_0.8fr] md:items-center">
-                <div>
-                  <p className="text-sm font-semibold text-[#0F172A]">{course.title}</p>
-                  <p className="mt-1 text-xs text-[#64748B]">{course.instructor}</p>
-                </div>
-                <div>
-                  <p className="text-xs uppercase tracking-[0.14em] text-[#64748B]">Category</p>
-                  <p className="mt-1 text-sm text-[#475569]">{course.category}</p>
-                </div>
-                <div>
-                  <p className="text-xs uppercase tracking-[0.14em] text-[#64748B]">Students</p>
-                  <p className="mt-1 text-sm text-[#475569]">{formatNumber(course.students)}</p>
-                </div>
-                <div>
-                  <p className="text-xs uppercase tracking-[0.14em] text-[#64748B]">Status</p>
-                  <div className="mt-1">
-                    <Badge variant={statusBadgeVariant(course.status)} size="sm">{course.status}</Badge>
-                  </div>
-                </div>
-                <div>
-                  <p className="text-xs uppercase tracking-[0.14em] text-[#64748B]">Created</p>
-                  <p className="mt-1 text-sm text-[#475569]">{course.created}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <div className="space-y-6">
-          <section className="rounded-[28px] border border-[#E2E8F0] bg-white p-5 shadow-sm md:p-6">
-            <div className="mb-5 flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#F0FDF4] text-[#16A34A]">
-                <CheckCircle2 className="h-5 w-5" aria-hidden="true" />
-              </div>
+            <div className="space-y-5">
+              {/* Metric 1: Total Assignments */}
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#2563EB]">Monitoring</p>
-                <h2 className="mt-1 text-2xl font-bold tracking-tight text-[#0F172A]">System Status</h2>
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              {adminDashboardData.systemStatus.map((item) => (
-                <div key={item.name} className="flex items-center justify-between gap-3 rounded-[18px] border border-[#E2E8F0] bg-[#F8FAFC] p-3">
-                  <span className="text-sm font-medium text-[#0F172A]">{item.name}</span>
-                  <Badge variant={statusBadgeVariant(item.status)} size="sm">{item.status}</Badge>
+                <div className="flex items-center justify-between text-xs sm:text-sm font-medium mb-2">
+                  <div className="flex items-center gap-2 text-slate-700">
+                    <FileText className="w-4 h-4 text-slate-400" />
+                    <span>Total Assignments</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-slate-900">243 / 300</span>
+                    <span className="text-[11px] font-semibold text-[#16A34A] flex items-center gap-0.5">
+                      <TrendingUp className="w-3 h-3" />
+                      10.3% +12 this week
+                    </span>
+                  </div>
                 </div>
-              ))}
-            </div>
-          </section>
-
-          <section className="rounded-[28px] border border-[#E2E8F0] bg-white p-5 shadow-sm md:p-6">
-            <div className="mb-5 flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#FFF7ED] text-[#EA580C]">
-                <AlertTriangle className="h-5 w-5" aria-hidden="true" />
+                {/* Progress bar */}
+                <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
+                  <div
+                    className="h-full bg-[#10B981] rounded-full transition-all duration-500"
+                    style={{ width: `${(243 / 300) * 100}%` }}
+                  />
+                </div>
               </div>
+
+              {/* Metric 2: Quiz Engagement */}
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#2563EB]">Notifications</p>
-                <h2 className="mt-1 text-2xl font-bold tracking-tight text-[#0F172A]">Admin Alerts</h2>
+                <div className="flex items-center justify-between text-xs sm:text-sm font-medium mb-2">
+                  <div className="flex items-center gap-2 text-slate-700">
+                    <Layers className="w-4 h-4 text-slate-400" />
+                    <span>Quiz Engagement</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-slate-900">1872 / 4532</span>
+                    <span className="text-[11px] font-semibold text-[#16A34A] flex items-center gap-0.5">
+                      <TrendingUp className="w-3 h-3" />
+                      10.3%
+                    </span>
+                  </div>
+                </div>
+                {/* Progress bar */}
+                <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
+                  <div
+                    className="h-full bg-[#3B82F6] rounded-full transition-all duration-500"
+                    style={{ width: `${(1872 / 4532) * 100}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* Metric 3: Pending Grading */}
+              <div>
+                <div className="flex items-center justify-between text-xs sm:text-sm font-medium mb-2">
+                  <div className="flex items-center gap-2 text-slate-700">
+                    <Clock className="w-4 h-4 text-slate-400" />
+                    <span>Pending Grading</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-slate-900">57 / 243</span>
+                    <span className="text-[11px] font-semibold text-[#16A34A] flex items-center gap-0.5">
+                      <TrendingUp className="w-3 h-3" />
+                      10.3%
+                    </span>
+                  </div>
+                </div>
+                {/* Progress bar */}
+                <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
+                  <div
+                    className="h-full bg-[#F97316] rounded-full transition-all duration-500"
+                    style={{ width: `${(57 / 243) * 100}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* Metric 4: Average Score */}
+              <div>
+                <div className="flex items-center justify-between text-xs sm:text-sm font-medium mb-2">
+                  <div className="flex items-center gap-2 text-slate-700">
+                    <Award className="w-4 h-4 text-slate-400" />
+                    <span>Average Score</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-slate-900">78.5%</span>
+                    <span className="text-[11px] font-semibold text-[#EF4444] flex items-center gap-0.5">
+                      <TrendingDown className="w-3 h-3" />
+                      N/A -2% this week
+                    </span>
+                  </div>
+                </div>
+                {/* Progress bar */}
+                <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
+                  <div
+                    className="h-full bg-[#EF4444] rounded-full transition-all duration-500"
+                    style={{ width: "78.5%" }}
+                  />
+                </div>
               </div>
             </div>
-
-            <div className="space-y-3">
-              {adminDashboardData.alerts.map((alert) => (
-                <div key={alert.id} className="rounded-[18px] border border-[#E2E8F0] bg-[#F8FAFC] p-3">
-                  <p className="text-sm text-[#475569]">{alert.text}</p>
-                  <Link href={alert.href} className="mt-2 inline-flex items-center gap-2 text-xs font-semibold text-[#2563EB] hover:text-[#1D4ED8]">
-                    View details
-                    <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
-                  </Link>
-                </div>
-              ))}
-            </div>
-          </section>
+          </div>
         </div>
       </div>
-
-      <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-        <section className="rounded-[28px] border border-[#E2E8F0] bg-white p-5 shadow-sm md:p-6">
-          <div className="mb-5 flex items-center justify-between gap-3">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#2563EB]">Orders</p>
-              <h2 className="mt-2 text-2xl font-bold tracking-tight text-[#0F172A]">Recent Enrollments</h2>
-            </div>
-            <Link href="/admin/enrollments" className="inline-flex items-center gap-2 text-sm font-semibold text-[#2563EB] hover:text-[#1D4ED8]">
-              View all
-              <ArrowRight className="h-4 w-4" aria-hidden="true" />
-            </Link>
-          </div>
-
-          <div className="space-y-3">
-            {adminDashboardData.recentEnrollments.map((entry) => (
-              <div key={entry.id} className="grid gap-3 rounded-[22px] border border-[#E2E8F0] bg-[#F8FAFC] p-4 md:grid-cols-[1.1fr_1fr_0.8fr_0.7fr_0.7fr] md:items-center">
-                <div>
-                  <p className="text-sm font-semibold text-[#0F172A]">{entry.student}</p>
-                </div>
-                <div>
-                  <p className="text-xs uppercase tracking-[0.14em] text-[#64748B]">Course</p>
-                  <p className="mt-1 text-sm text-[#475569]">{entry.course}</p>
-                </div>
-                <div>
-                  <p className="text-xs uppercase tracking-[0.14em] text-[#64748B]">Date</p>
-                  <p className="mt-1 text-sm text-[#475569]">{entry.date}</p>
-                </div>
-                <div>
-                  <p className="text-xs uppercase tracking-[0.14em] text-[#64748B]">Amount</p>
-                  <p className="mt-1 text-sm text-[#475569]">{formatCurrency(entry.amount)}</p>
-                </div>
-                <div>
-                  <Badge variant={statusBadgeVariant(entry.status)} size="sm">{entry.status}</Badge>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section className="rounded-[28px] border border-[#E2E8F0] bg-white p-5 shadow-sm md:p-6">
-          <div className="mb-5 flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#EFF6FF] text-[#2563EB]">
-              <Star className="h-5 w-5" aria-hidden="true" />
-            </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#2563EB]">Feedback</p>
-              <h2 className="mt-1 text-2xl font-bold tracking-tight text-[#0F172A]">Platform Rating</h2>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <span className="text-4xl font-bold tracking-tight text-[#0F172A]">{adminDashboardData.rating.average.toFixed(1)}</span>
-            <div className="flex items-center gap-1 text-[#F59E0B]" aria-label="Average rating 4.8 out of 5 stars">
-              {Array.from({ length: 5 }).map((_, index) => (
-                <Star key={index} className={`h-4 w-4 ${index < Math.round(adminDashboardData.rating.average) ? "fill-current" : "text-[#CBD5E1] fill-none"}`} aria-hidden="true" />
-              ))}
-            </div>
-          </div>
-          <p className="mt-2 text-sm text-[#64748B]">Average Platform Rating</p>
-          <p className="mt-2 text-sm text-[#475569]">Total Reviews: {formatNumber(adminDashboardData.rating.totalReviews)}</p>
-
-          <div className="mt-6 space-y-3">
-            {adminDashboardData.rating.distribution.map((item) => (
-              <div key={item.label} className="grid grid-cols-[70px_1fr_40px] items-center gap-3 text-sm text-[#475569]">
-                <span>{item.label}</span>
-                <div className="h-2.5 overflow-hidden rounded-full bg-[#E2E8F0]">
-                  <div className="h-full rounded-full bg-[#F59E0B]" style={{ width: `${item.percent}%` }} />
-                </div>
-                <span className="text-right font-medium text-[#0F172A]">{item.percent}%</span>
-              </div>
-            ))}
-          </div>
-        </section>
-      </div>
-
-      <section className="rounded-[28px] border border-[#E2E8F0] bg-white p-5 shadow-sm md:p-6">
-        <div className="mb-5 flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#EFF6FF] text-[#2563EB]">
-            <Building2 className="h-5 w-5" aria-hidden="true" />
-          </div>
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#2563EB]">Activity</p>
-            <h2 className="mt-1 text-2xl font-bold tracking-tight text-[#0F172A]">Recent Activity</h2>
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          {adminDashboardData.recentActivity.map((activity) => {
-            const Icon = getActivityIcon(activity.type);
-            return (
-              <div key={activity.id} className="flex items-start gap-3 rounded-[18px] border border-[#E2E8F0] bg-[#F8FAFC] p-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EFF6FF] text-[#2563EB]">
-                  <Icon className="h-4 w-4" aria-hidden="true" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm text-[#0F172A]">{activity.text}</p>
-                  <p className="mt-1 text-xs text-[#64748B]">{activity.time}</p>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </section>
-
-      <section className="rounded-[28px] border border-[#E2E8F0] bg-white p-5 shadow-sm md:p-6">
-        <div className="mb-5 flex items-center justify-between gap-3">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#2563EB]">Operations</p>
-            <h2 className="mt-2 text-2xl font-bold tracking-tight text-[#0F172A]">Quick Actions</h2>
-          </div>
-        </div>
-
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {adminDashboardData.quickActions.map((action) => (
-            <Link key={action.label} href={action.href} className="flex items-center justify-between gap-3 rounded-[20px] border border-[#E2E8F0] bg-[#F8FAFC] p-4 text-left transition hover:border-[#CBD5E1] hover:bg-[#F1F5F9]">
-              <span className="text-sm font-medium text-[#0F172A]">{action.label}</span>
-              <ArrowRight className="h-4 w-4 text-[#64748B]" aria-hidden="true" />
-            </Link>
-          ))}
-        </div>
-      </section>
     </div>
-  );
-}
-
-function GraduationCapIcon(props) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props} aria-hidden="true">
-      <path d="M12 3 2.5 8l9.5 5 9.5-5L12 3Z" />
-      <path d="M6.5 10.2V15c0 1.8 2.5 3.5 5.5 3.5s5.5-1.7 5.5-3.5v-4.8" />
-      <path d="M21.5 8v7" />
-    </svg>
   );
 }
