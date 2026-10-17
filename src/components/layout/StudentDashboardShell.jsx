@@ -119,10 +119,12 @@ function buildSidebar(RoleSidebar) {
                   </svg>
                 </Button>
               </Link>
-              <Button variant="ghost" size="icon" aria-label="Notifications" className="relative">
-                <Bell className="h-5 w-5" />
-                <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-danger flex" />
-              </Button>
+              <Link href="/student/notifications">
+                <Button variant="ghost" size="icon" aria-label="Notifications" className="relative">
+                  <Bell className="h-5 w-5" />
+                  <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-danger flex" />
+                </Button>
+              </Link>
               <div className="relative ml-1" ref={menuRef}>
                 <button
                   onClick={() => setMenuOpen((v) => !v)}

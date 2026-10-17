@@ -30,23 +30,47 @@ const navItems = [
   },
   {
     label: "My Courses",
-    href: "/student/profile?tab=courses",
+    href: "/student/courses",
     icon: BookOpen,
+    badge: "3",
   },
   {
-    label: "Continue Learning",
-    href: "/student/profile?tab=courses",
+    label: "Classroom Player",
+    href: "/student/learning",
     icon: PlayCircle,
+    badge: "Live",
+    badgeColor: "bg-blue-100 text-blue-700",
+  },
+  {
+    label: "Quizzes & Tests",
+    href: "/student/quizzes",
+    icon: ClipboardList,
+    badge: "2 Due",
+    badgeColor: "bg-amber-100 text-amber-700",
+  },
+  {
+    label: "Assignments",
+    href: "/student/assignments",
+    icon: FileCheck,
+    badge: "1 Pending",
+    badgeColor: "bg-purple-100 text-purple-700",
   },
   {
     label: "Certificates",
-    href: "/student/profile?tab=certificates",
+    href: "/student/certificates",
     icon: Award,
   },
   {
-    label: "Honors & Badges",
-    href: "/student/profile?tab=badges",
-    icon: Sparkles,
+    label: "Saved Wishlist",
+    href: "/student/wishlist",
+    icon: Heart,
+  },
+  {
+    label: "Notifications",
+    href: "/student/notifications",
+    icon: Bell,
+    badge: "4",
+    badgeColor: "bg-red-100 text-red-600",
   },
   {
     type: "divider",
@@ -57,8 +81,8 @@ const navItems = [
     icon: UserCircle,
   },
   {
-    label: "Account Security",
-    href: "/student/profile?tab=security",
+    label: "Portal Settings",
+    href: "/student/settings",
     icon: Settings,
   },
 ];
@@ -138,7 +162,21 @@ export default function StudentSidebar({ collapsed = false, onToggle }) {
                   isActive ? "text-blue-600" : "text-slate-400"
                 )}
               />
-              {!collapsed && <span>{item.label}</span>}
+              {!collapsed && (
+                <div className="flex items-center justify-between flex-1 min-w-0">
+                  <span className="truncate">{item.label}</span>
+                  {item.badge && (
+                    <span
+                      className={cn(
+                        "ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0",
+                        item.badgeColor || "bg-slate-100 text-slate-600"
+                      )}
+                    >
+                      {item.badge}
+                    </span>
+                  )}
+                </div>
+              )}
             </Link>
           );
         })}
