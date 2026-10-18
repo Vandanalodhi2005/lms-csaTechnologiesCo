@@ -10,7 +10,7 @@ const TABS = [
   { id: "register", label: "Register" },
 ];
 
-export default function AuthCard() {
+function AuthCardInner() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -64,5 +64,19 @@ export default function AuthCard() {
         {mode === "login" ? <LoginForm /> : <RegisterForm />}
       </div>
     </div>
+  );
+}
+
+export default function AuthCard() {
+  return (
+    <React.Suspense
+      fallback={
+        <div className="w-full mx-auto max-w-[500px] bg-white border border-[#E2E8F0] rounded-2xl p-8 min-h-[420px] flex items-center justify-center">
+          <div className="w-8 h-8 rounded-full border-2 border-blue-600 border-t-transparent animate-spin" />
+        </div>
+      }
+    >
+      <AuthCardInner />
+    </React.Suspense>
   );
 }

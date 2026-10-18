@@ -46,11 +46,9 @@ const paymentSchema = new mongoose.Schema(
     },
     gatewayOrderId: {
       type: String,
-      index: true,
     },
     gatewayPaymentId: {
       type: String,
-      index: true,
     },
     gatewayRefundId: {
       type: String,

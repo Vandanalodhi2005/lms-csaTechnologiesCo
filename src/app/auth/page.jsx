@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { BookOpen, Home as HomeIcon } from "lucide-react";
 import AuthBrandPanel from "@/components/auth/AuthBrandPanel.jsx";
@@ -86,12 +87,16 @@ export default function AuthPage() {
               <AuthBrandPanel />
 
               <div className="lg:hidden mt-6">
-                <AuthCard />
+                <Suspense fallback={<div className="h-96 w-full rounded-2xl bg-white border border-[#E2E8F0] animate-pulse" />}>
+                  <AuthCard />
+                </Suspense>
               </div>
             </div>
 
             <div className="lg:col-span-5 xl:col-span-5 hidden lg:flex items-center justify-center py-6">
-              <AuthCard />
+              <Suspense fallback={<div className="h-96 w-full rounded-2xl bg-white border border-[#E2E8F0] animate-pulse" />}>
+                <AuthCard />
+              </Suspense>
             </div>
           </div>
         </div>

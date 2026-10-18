@@ -20,7 +20,7 @@ import {
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-client.jsx";
 
-export default function StudentLoginPage() {
+function StudentLoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectUrl = searchParams.get("redirect") || "/student/profile";
@@ -340,5 +340,19 @@ export default function StudentLoginPage() {
         </div>
       </footer>
     </div>
+  );
+}
+
+export default function StudentLoginPage() {
+  return (
+    <React.Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-slate-50">
+          <div className="w-8 h-8 rounded-full border-2 border-blue-600 border-t-transparent animate-spin" />
+        </div>
+      }
+    >
+      <StudentLoginForm />
+    </React.Suspense>
   );
 }
