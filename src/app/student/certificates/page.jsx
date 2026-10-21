@@ -55,7 +55,7 @@ const CERTIFICATES = [
   },
 ];
 
-export default function StudentCertificatesPage() {
+function LegacyStudentCertificatesPage() {
   const [selectedCert, setSelectedCert] = React.useState(null);
 
   const copyCredentialLink = (certId) => {
@@ -335,6 +335,38 @@ export default function StudentCertificatesPage() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+export default function StudentCertificatesPage() {
+  const [certificates, setCertificates] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState("");
+
+  React.useEffect(() => {
+    let cancelled = false;
+    async function loadCertificates() {
+      try {
+        const response = await fetch("/api/users?action=certificates&page=1&limit=50", { cache: "no-store" });
+        const result = await response.json();
+        if (!response.ok || !result.success) throw new Error(result.message || "Could not load certificates.");
+        if (!cancelled) setCertificates(result.data.certificates || []);
+      } catch (loadError) {
+        if (!cancelled) setError(loadError.message || "Could not load certificates. Please try again.");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    loadCertificates();
+    return () => { cancelled = true; };
+  }, []);
+
+  return (
+    <div className="mx-auto max-w-6xl space-y-6 pb-8">
+      <header><p className="text-xs font-semibold uppercase tracking-[0.14em] text-blue-700">Learning achievements</p><h1 className="mt-1 text-3xl font-bold tracking-tight text-slate-900">My Certificates</h1><p className="mt-2 text-sm text-slate-600">Certificates issued for your completed courses.</p></header>
+      {error ? <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">{error}</div> : null}
+      {loading ? <div className="flex min-h-40 items-center justify-center text-sm text-slate-600" role="status"><span className="mr-2 h-5 w-5 animate-spin rounded-full border-2 border-slate-300 border-t-blue-600" />Loading certificates</div> : certificates.length ? <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{certificates.map((certificate) => <article key={certificate._id} className="flex min-w-0 flex-col rounded-xl border border-slate-200 bg-white p-5 shadow-sm"><div className="flex items-start justify-between gap-3"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-700"><Award className="h-5 w-5" aria-hidden="true" /></div><span className="max-w-[60%] truncate rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">{certificate.certificateId}</span></div><h2 className="mt-4 line-clamp-2 text-lg font-bold text-slate-900">{certificate.courseName || certificate.courseId?.title || "Course certificate"}</h2><p className="mt-2 text-sm text-slate-600">Instructor: {certificate.instructorName || "Not listed"}</p><p className="mt-1 text-sm text-slate-600">Issued {certificate.issueDate ? new Date(certificate.issueDate).toLocaleDateString() : "date unavailable"}</p><Link href={`/verify-certificate?code=${encodeURIComponent(certificate.verificationCode)}`} className="mt-5 inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-[#0F2F5F] px-4 text-sm font-semibold text-white hover:bg-[#143A72] focus:outline-none focus:ring-2 focus:ring-blue-600">View certificate <ExternalLink className="h-4 w-4" aria-hidden="true" /></Link></article>)}</div> : <section className="rounded-2xl border border-dashed border-slate-300 bg-white px-5 py-12 text-center"><Award className="mx-auto h-9 w-9 text-slate-400" aria-hidden="true" /><h2 className="mt-3 text-lg font-semibold text-slate-900">No certificates yet</h2><p className="mt-1 text-sm text-slate-600">Certificates will appear here after you complete an eligible course.</p><Link href="/student/courses" className="mt-4 inline-flex min-h-10 items-center rounded-lg border border-slate-200 px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50">View my courses</Link></section>}
     </div>
   );
 }

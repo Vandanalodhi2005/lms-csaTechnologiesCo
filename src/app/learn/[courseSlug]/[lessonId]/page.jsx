@@ -1,70 +1,65 @@
 import Image from "next/image";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, ArrowRight, BookOpen, ChevronRight, Clock3, Home, Lock, Video } from "lucide-react";
-import { instructors } from "@/constants/instructors.js";
-import { courseLessons } from "@/constants/lessons.js";
+import { getAuthUser } from "@/lib/auth";
+import { contentService, courseService, enrollmentService } from "@/services";
 import LearningCurriculum from "@/components/learning/LearningCurriculum.jsx";
 import MarkLessonComplete from "@/components/learning/MarkLessonComplete.jsx";
-
-function flattenLessons(sections) {
-  return sections.flatMap((section) =>
-    section.lessons.map((lesson) => ({
-      ...lesson,
-      sectionId: section.sectionId,
-      sectionTitle: section.sectionTitle,
-    }))
-  );
-}
-
-function getCourseData(courseSlug) {
-  if (!courseSlug) return null;
-  return courseLessons[courseSlug] ?? null;
-}
 
 export async function generateMetadata({ params }) {
   const courseSlug = params?.courseSlug;
   const lessonId = params?.lessonId;
-  const courseData = getCourseData(courseSlug);
-
-  if (!courseData) {
+  try {
+    const course = await courseService.getBySlug(courseSlug);
+    const modules = await contentService.getCourseCurriculum(course._id);
+    const lesson = modules.flatMap((module) => module.lessons).find((item) => String(item._id) === lessonId);
+    if (!lesson) throw new Error("Lesson not found");
     return {
-      title: "Lesson Not Found | EduLearn",
-      description: "This learning lesson could not be found.",
+      title: `${lesson.title} | ${course.title} | EduLearn`,
+      description: lesson.description || `Continue learning ${course.title} with EduLearn.`,
     };
+  } catch {
+    return { title: "Lesson Not Found | EduLearn", description: "This learning lesson could not be found." };
   }
-
-  const flatLessons = flattenLessons(courseData.sections);
-  const lesson = flatLessons.find((item) => item.id === lessonId) ?? flatLessons[0];
-
-  return {
-    title: `${lesson?.title ?? "Lesson"} | ${courseData.course.title} | EduLearn`,
-    description: `Continue learning ${courseData.course.title} with this EduLearn lesson.`,
-  };
 }
 
 export default async function LearningLessonPage({ params }) {
   const { courseSlug, lessonId } = params || {};
-  const courseData = getCourseData(courseSlug);
+  const user = await getAuthUser();
+  if (!user?.id) redirect(`/auth/login?redirect=${encodeURIComponent(`/learn/${courseSlug}/${lessonId}`)}`);
 
-  if (!courseData) {
+  let course;
+  let enrollment;
+  try {
+    course = await courseService.getBySlug(courseSlug, user);
+    enrollment = await enrollmentService.get(user.id, course._id);
+  } catch {
     notFound();
   }
 
-  const flatLessons = flattenLessons(courseData.sections);
+  const curriculum = await contentService.getCourseCurriculum(course._id);
+  const progressData = await enrollmentService.getProgress(user.id, course._id);
+  const sections = curriculum.map((module) => ({
+    sectionId: String(module._id),
+    sectionTitle: module.title,
+    lessons: module.lessons.map((lesson) => ({
+      ...lesson,
+      id: String(lesson._id),
+      duration: lesson.duration ? `${lesson.duration} min` : "Lesson",
+      isCompleted: Boolean(progressData.progressByLesson?.[String(lesson._id)]?.isCompleted),
+      isLocked: false,
+    })),
+  }));
+  const flatLessons = sections.flatMap((section) => section.lessons.map((lesson) => ({ ...lesson, sectionId: section.sectionId, sectionTitle: section.sectionTitle })));
   const currentLesson = flatLessons.find((lesson) => lesson.id === lessonId);
-
-  if (!currentLesson) {
-    notFound();
-  }
+  if (!currentLesson) notFound();
 
   const currentIndex = flatLessons.findIndex((lesson) => lesson.id === currentLesson.id);
   const previousLesson = currentIndex > 0 ? flatLessons[currentIndex - 1] : null;
   const nextLesson = currentIndex < flatLessons.length - 1 ? flatLessons[currentIndex + 1] : null;
-  const completedCount = flatLessons.filter((lesson) => lesson.isCompleted).length;
-  const progress = Math.round((completedCount / flatLessons.length) * 100);
-
-  const instructor = instructors.find((person) => person.slug === courseData.course.instructorSlug) || null;
+  const completedCount = progressData.lessonsCompleted || 0;
+  const instructor = course.instructorId;
   const sectionTitle = currentLesson.sectionTitle ?? "Course Overview";
   const lessonHasVideo = Boolean(currentLesson.videoUrl && currentLesson.videoUrl.trim());
 
@@ -81,12 +76,12 @@ export default async function LearningLessonPage({ params }) {
             </Link>
             <span className="hidden h-4 w-px bg-slate-300 sm:block" aria-hidden="true" />
             <div className="min-w-0">
-              <p className="truncate text-sm font-medium text-slate-600">{courseData.course.title}</p>
+              <p className="truncate text-sm font-medium text-slate-600">{course.title}</p>
             </div>
           </div>
 
           <Link
-            href={`/courses/${courseData.course.slug}`}
+            href={`/courses/${course.slug}`}
             className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
           >
             <ArrowLeft className="h-4 w-4" aria-hidden="true" />
@@ -116,8 +111,8 @@ export default async function LearningLessonPage({ params }) {
               <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
             </li>
             <li>
-              <Link href={`/courses/${courseData.course.slug}`} className="hover:text-blue-600">
-                {courseData.course.title}
+              <Link href={`/courses/${course.slug}`} className="hover:text-blue-600">
+                {course.title}
               </Link>
             </li>
             <li aria-hidden>
@@ -178,7 +173,7 @@ export default async function LearningLessonPage({ params }) {
                   <span>{currentLesson.duration}</span>
                 </div>
                 <span className="rounded-full border border-blue-100 bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700">
-                  {courseData.course.level}
+                  {course.level}
                 </span>
                 <span className="rounded-full border border-slate-200 bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">
                   Video Lesson
@@ -243,6 +238,8 @@ export default async function LearningLessonPage({ params }) {
                 initialCompletedCount={completedCount}
                 totalLessons={flatLessons.length}
                 lessonTitle={currentLesson.title}
+                courseId={String(course._id)}
+                lessonId={currentLesson.id}
               />
 
               <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
@@ -252,7 +249,7 @@ export default async function LearningLessonPage({ params }) {
                     <span className="font-semibold text-slate-800">Course</span>
                   </div>
                   <Link
-                    href={`/courses/${courseData.course.slug}`}
+                    href={`/courses/${course.slug}`}
                     className="text-sm font-medium text-blue-600 hover:text-blue-700"
                   >
                     View Course
@@ -261,19 +258,19 @@ export default async function LearningLessonPage({ params }) {
 
                 <div className="mt-4 space-y-3 text-sm text-slate-600">
                   <p>
-                    <span className="font-medium text-slate-700">Course:</span> {courseData.course.title}
+                    <span className="font-medium text-slate-700">Course:</span> {course.title}
                   </p>
                   <p>
-                    <span className="font-medium text-slate-700">Instructor:</span> {courseData.course.instructorName}
+                    <span className="font-medium text-slate-700">Instructor:</span> {instructor?.name || "Not available"}
                   </p>
                   <p>
-                    <span className="font-medium text-slate-700">Level:</span> {courseData.course.level}
+                    <span className="font-medium text-slate-700">Level:</span> {course.level}
                   </p>
                   <p>
                     <span className="font-medium text-slate-700">Lessons:</span> {flatLessons.length}
                   </p>
                   <p>
-                    <span className="font-medium text-slate-700">Duration:</span> {courseData.course.durationLabel}
+                    <span className="font-medium text-slate-700">Duration:</span> {course.duration ? `${course.duration} minutes` : "Not specified"}
                   </p>
                 </div>
               </div>
@@ -284,13 +281,7 @@ export default async function LearningLessonPage({ params }) {
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
                     <div className="relative h-12 w-12 overflow-hidden rounded-full border border-slate-200 bg-slate-100">
-                      <Image
-                        src={instructor.avatar}
-                        alt={instructor.name}
-                        fill
-                        sizes="48px"
-                        className="object-cover"
-                      />
+                      {instructor.avatar ? <Image src={instructor.avatar} alt={instructor.name} fill sizes="48px" className="object-cover" /> : null}
                     </div>
                     <div>
                       <p className="font-semibold text-slate-900">{instructor.name}</p>
@@ -298,7 +289,7 @@ export default async function LearningLessonPage({ params }) {
                     </div>
                   </div>
                   <Link
-                    href={`/instructors/${instructor.slug}`}
+                    href={instructor.slug ? `/instructors/${instructor.slug}` : "/instructors"}
                     className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
                   >
                     View Instructor
@@ -311,17 +302,17 @@ export default async function LearningLessonPage({ params }) {
           <div className="lg:pt-2">
             <div className="lg:hidden">
               <LearningCurriculum
-                sections={courseData.sections}
+                sections={sections}
                 currentLessonId={currentLesson.id}
-                courseSlug={courseData.course.slug}
+                courseSlug={course.slug}
               />
             </div>
 
             <div className="hidden lg:block">
               <LearningCurriculum
-                sections={courseData.sections}
+                sections={sections}
                 currentLessonId={currentLesson.id}
-                courseSlug={courseData.course.slug}
+                courseSlug={course.slug}
               />
             </div>
           </div>

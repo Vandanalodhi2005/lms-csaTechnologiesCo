@@ -30,11 +30,13 @@ export async function GET(req) {
     }
 
     if (action === "curriculum" && courseId) {
-      const includeUnpublished = userId && (
+      const course = await courseService.getById(courseId, userId);
+      const instructorId = course.instructorId?._id || course.instructorId;
+      const includeUnpublished = Boolean(userId && (
         userId.role === ROLES.ADMIN ||
         userId.role === ROLES.SUPER_ADMIN ||
-        String(course.instructorId) === String(userId.id)
-      );
+        (userId.role === ROLES.INSTRUCTOR && String(instructorId) === String(userId.id))
+      ));
       const curriculum = await contentService.getCourseCurriculum(courseId, includeUnpublished);
       return apiResponse(curriculum);
     }

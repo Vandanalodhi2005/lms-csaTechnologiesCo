@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Image from "next/image";
 import Link from "next/link";
 import {
   User,
@@ -125,7 +126,7 @@ const badgesList = [
   },
 ];
 
-export default function StudentProfilePage() {
+function LegacyStudentProfilePage() {
   const [activeTab, setActiveTab] = React.useState("personal");
   const [isSaving, setIsSaving] = React.useState(false);
   const [previewCert, setPreviewCert] = React.useState(null);
@@ -590,9 +591,11 @@ export default function StudentProfilePage() {
                 >
                   <div>
                     <div className="h-40 relative overflow-hidden bg-slate-100">
-                      <img
+                      <Image
                         src={c.thumbnail}
                         alt={c.title}
+                        fill
+                        sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
                         className="w-full h-full object-cover"
                       />
                       <span className={`absolute top-3 right-3 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
@@ -950,4 +953,8 @@ export default function StudentProfilePage() {
 
     </div>
   );
+}
+
+export default function StudentProfilePage() {
+  return <LegacyStudentProfilePage />;
 }

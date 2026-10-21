@@ -1,6 +1,6 @@
 import { apiResponse, apiCreated, apiError, handleApiError, validateRequest, apiForbidden, apiNotFound } from "@/lib/response";
 import { getAuthUser, requireAuth } from "@/lib/auth";
-import { authService, paymentService, enrollmentService } from "@/services";
+import { authService, paymentService, enrollmentService, notificationService } from "@/services";
 import { ROLES } from "@/constants";
 import { paginate } from "@/utils";
 import { createReviewSchema, applyCouponSchema } from "@/validations/payment.validation";
@@ -133,6 +133,19 @@ export async function GET(req) {
       return apiResponse(result);
     }
 
+    if (action === "notifications") {
+      if (!user) return apiUnauthorized();
+      const notificationPage = Math.max(1, page);
+      const notificationLimit = Math.min(50, Math.max(1, limit));
+      const unreadOnly = searchParams.get("unreadOnly") === "true";
+      const result = await notificationService.listForUser(user.id, {
+        page: notificationPage,
+        limit: notificationLimit,
+        unreadOnly,
+      });
+      return apiResponse(result);
+    }
+
     return apiError("Invalid action", 400);
   } catch (error) {
     return handleApiError(error);
@@ -223,6 +236,20 @@ export async function POST(req) {
       delete updates.userId;
       const result = await authService.adminUpdateUser(userId, updates);
       return apiResponse(result, "User updated");
+    }
+
+    if (action === "markNotificationRead") {
+      const notificationId = body.notificationId;
+      if (typeof notificationId !== "string" || !/^[a-f\d]{24}$/i.test(notificationId)) {
+        return apiError("A valid notification ID is required", 400);
+      }
+      const result = await notificationService.markRead(user.id, notificationId);
+      return apiResponse(result, "Notification marked as read");
+    }
+
+    if (action === "markAllNotificationsRead") {
+      const result = await notificationService.markAllRead(user.id);
+      return apiResponse(result, "Notifications marked as read");
     }
 
     return apiError("Invalid action", 400);

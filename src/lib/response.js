@@ -55,6 +55,17 @@ export function apiValidationError(errors, message = "Validation failed") {
 
 export function handleApiError(error) {
   console.error("API Error:", error);
+  if (error.code === "MONGODB_URI_MISSING" || error.code === "JWT_SECRET_MISSING") {
+    return apiError(error.message, 503);
+  }
+  if (
+    error.name === "MongooseServerSelectionError" ||
+    error.name === "MongoServerSelectionError" ||
+    error.name === "MongoParseError" ||
+    error.name === "MongoAPIError"
+  ) {
+    return apiError("Could not connect to MongoDB. Check MONGODB_URI, network access, and database credentials.", 503);
+  }
   if (error.name === "ZodError") {
     const formatted = error.issues.map((issue) => ({
       path: issue.path.join("."),
@@ -67,6 +78,9 @@ export function handleApiError(error) {
   }
   if (error.message === "Insufficient permissions") {
     return apiForbidden(error.message);
+  }
+  if (Number.isInteger(error.statusCode)) {
+    return apiError(error.message, error.statusCode);
   }
   if (error.message === "Resource not found" || error.message?.includes("not found")) {
     return apiNotFound(error.message);

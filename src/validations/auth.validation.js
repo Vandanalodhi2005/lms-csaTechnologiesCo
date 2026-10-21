@@ -70,7 +70,15 @@ export const resetPasswordSchema = z
   });
 
 export const verifyEmailSchema = z.object({
-  token: z.string({ required_error: "Verification token is required" }),
+  token: z.string({ required_error: "Verification token is required" }).min(1),
+});
+
+export const resendVerificationEmailSchema = z.object({
+  email: z
+    .string({ required_error: "Email is required" })
+    .email("Please provide a valid email address")
+    .trim()
+    .toLowerCase(),
 });
 
 export const updateProfileSchema = z.object({

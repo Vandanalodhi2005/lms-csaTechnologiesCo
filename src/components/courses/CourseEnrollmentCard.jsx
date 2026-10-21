@@ -130,7 +130,7 @@ export default function CourseEnrollmentCard({ course }) {
             ) : null}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-              <CourseWishlistButton />
+              <CourseWishlistButton courseId={course._id} />
               <CourseShareButton courseTitle={course.title} />
             </div>
           </div>

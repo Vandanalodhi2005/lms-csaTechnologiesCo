@@ -1,6 +1,3 @@
-"use client";
-
-import * as React from "react";
 import Link from "next/link";
 import {
   BookOpen,
@@ -18,7 +15,7 @@ import {
   FileText,
 } from "lucide-react";
 
-export default function StudentDashboardPage() {
+function LegacyStudentDashboardPage() {
   return (
     <div className="space-y-6 animate-fadeIn pb-12 font-sans">
       {/* Welcome Banner */}
@@ -34,7 +31,7 @@ export default function StudentDashboardPage() {
             Ready to continue learning, Alex?
           </h1>
           <p className="text-xs sm:text-sm text-blue-100 leading-relaxed">
-            You've completed 78% of your Full Stack Web Development course. Keep up the 14-day study streak!
+            You&apos;ve completed 78% of your Full Stack Web Development course. Keep up the 14-day study streak!
           </p>
           <div className="pt-2 flex items-center gap-3">
             <Link
@@ -188,4 +185,8 @@ export default function StudentDashboardPage() {
       </div>
     </div>
   );
+}
+
+export default function StudentDashboardPage() {
+  return <LegacyStudentDashboardPage />;
 }

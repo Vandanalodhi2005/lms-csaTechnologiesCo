@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { ROLES } from "@/constants";
+import BrandLogo from "@/components/layout/BrandLogo.jsx";
 
 const learningTracks = [
   "Web Development",
@@ -96,20 +97,14 @@ export default function StudentRegisterPage() {
       });
 
       const json = await res.json().catch(() => ({}));
-      if (json.success || process.env.NODE_ENV !== "production") {
+      if (json.success) {
         toast.success("Account created successfully! Welcome to EduLearn.");
-        router.push("/student/profile");
+        router.push("/student/dashboard");
       } else {
         toast.error(json.message || "Registration failed. Please try again.");
       }
     } catch {
-      // In dev mode fallback
-      if (process.env.NODE_ENV !== "production") {
-        toast.success("Account created! Redirecting to student portal...");
-        router.push("/student/profile");
-      } else {
-        toast.error("Could not complete registration. Please try again.");
-      }
+      toast.error("Could not complete registration. Please check your connection and try again.");
     } finally {
       setIsLoading(false);
     }
@@ -120,12 +115,7 @@ export default function StudentRegisterPage() {
       {/* Top Header */}
       <header className="h-16 border-b border-slate-200/80 bg-white/90 backdrop-blur sticky top-0 z-30 px-4 sm:px-8 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-slate-950 flex items-center justify-center text-white shadow-sm">
-            <GraduationCap className="w-5 h-5 text-blue-400" />
-          </div>
-          <span className="font-extrabold text-xl tracking-tight text-slate-900">
-            Edu<span className="text-blue-600">Learn</span>
-          </span>
+          <BrandLogo />
         </Link>
 
         <div className="flex items-center gap-3">
@@ -401,7 +391,7 @@ export default function StudentRegisterPage() {
               <div className="grid grid-cols-2 gap-3">
                 <button
                   type="button"
-                  onClick={() => toast.info("Google registration initiated")}
+                  onClick={() => window.location.assign("/api/auth/oauth/google")}
                   className="flex items-center justify-center gap-2 px-3 py-2 border border-slate-200 hover:border-slate-300 hover:bg-slate-50 rounded-xl text-xs font-semibold text-slate-700 transition-all"
                 >
                   <svg className="w-4 h-4" viewBox="0 0 24 24">
@@ -415,7 +405,7 @@ export default function StudentRegisterPage() {
 
                 <button
                   type="button"
-                  onClick={() => toast.info("GitHub registration initiated")}
+                  onClick={() => window.location.assign("/api/auth/oauth/github")}
                   className="flex items-center justify-center gap-2 px-3 py-2 border border-slate-200 hover:border-slate-300 hover:bg-slate-50 rounded-xl text-xs font-semibold text-slate-700 transition-all"
                 >
                   <svg className="w-4 h-4 fill-slate-900" viewBox="0 0 24 24">

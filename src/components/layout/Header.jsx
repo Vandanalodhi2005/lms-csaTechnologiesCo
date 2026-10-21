@@ -3,9 +3,10 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { BookOpen, LogIn, UserPlus, Menu, X, Search } from "lucide-react";
+import { LogIn, UserPlus, Menu, X, Search } from "lucide-react";
 import { cn } from "@/utils";
 import Button from "@/components/ui/Button.jsx";
+import BrandLogo from "./BrandLogo.jsx";
 
 const navLinks = [
   { label: "Home", href: "/" },
@@ -39,13 +40,8 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-40 w-full bg-white border-b border-[#E2E8F0]">
       <div className="container-page h-16 flex items-center justify-between gap-4">
-        <Link href="/" className="flex items-center gap-2 shrink-0 group">
-          <div className="h-8 w-8 rounded-lg bg-[#0F2F5F] flex items-center justify-center shadow-sm">
-            <BookOpen className="h-4.5 w-4.5 text-white" style={{ height: 18, width: 18 }} />
-          </div>
-          <span className="font-bold text-lg tracking-tight text-[#0F172A] group-hover:text-[#2563EB] transition-colors">
-            Edu<span className="text-[#2563EB]">Learn</span>
-          </span>
+        <Link href="/" className="flex items-center gap-2 shrink-0 group" aria-label="EduLearn Home">
+          <BrandLogo />
         </Link>
 
         <nav className="hidden lg:flex items-center gap-1">
@@ -107,13 +103,8 @@ export default function Header() {
             aria-label="Mobile navigation"
           >
             <div className="h-16 flex items-center justify-between px-5 border-b border-[#E2E8F0]">
-              <Link href="/" className="flex items-center gap-2">
-                <div className="h-8 w-8 rounded-lg bg-[#0F2F5F] flex items-center justify-center">
-                  <BookOpen style={{ height: 18, width: 18 }} className="text-white" />
-                </div>
-                <span className="font-bold text-lg text-[#0F172A]">
-                  Edu<span className="text-[#2563EB]">Learn</span>
-                </span>
+              <Link href="/" className="flex items-center gap-2" aria-label="EduLearn Home">
+                <BrandLogo />
               </Link>
               <button
                 onClick={() => setMobileOpen(false)}

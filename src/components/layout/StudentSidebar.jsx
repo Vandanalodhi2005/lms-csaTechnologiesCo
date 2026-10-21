@@ -15,11 +15,11 @@ import {
   UserCircle,
   Settings,
   FileCheck,
-  GraduationCap,
   Sparkles,
   PanelLeftClose,
 } from "lucide-react";
 import Avatar from "@/components/ui/Avatar.jsx";
+import BrandLogo from "./BrandLogo.jsx";
 
 const navItems = [
   {
@@ -32,28 +32,21 @@ const navItems = [
     label: "My Courses",
     href: "/student/courses",
     icon: BookOpen,
-    badge: "3",
   },
   {
-    label: "Classroom Player",
-    href: "/student/learning",
+    label: "Continue Learning",
+    href: "/student/dashboard#courses-section",
     icon: PlayCircle,
-    badge: "Live",
-    badgeColor: "bg-blue-100 text-blue-700",
   },
   {
     label: "Quizzes & Tests",
     href: "/student/quizzes",
     icon: ClipboardList,
-    badge: "2 Due",
-    badgeColor: "bg-amber-100 text-amber-700",
   },
   {
     label: "Assignments",
     href: "/student/assignments",
     icon: FileCheck,
-    badge: "1 Pending",
-    badgeColor: "bg-purple-100 text-purple-700",
   },
   {
     label: "Certificates",
@@ -69,8 +62,6 @@ const navItems = [
     label: "Notifications",
     href: "/student/notifications",
     icon: Bell,
-    badge: "4",
-    badgeColor: "bg-red-100 text-red-600",
   },
   {
     type: "divider",
@@ -87,7 +78,7 @@ const navItems = [
   },
 ];
 
-export default function StudentSidebar({ collapsed = false, onToggle }) {
+export default function StudentSidebar({ collapsed = false, onToggle, user }) {
   const pathname = usePathname();
 
   return (
@@ -101,19 +92,12 @@ export default function StudentSidebar({ collapsed = false, onToggle }) {
       <div className="flex items-center justify-between h-16 border-b border-slate-100 px-4">
         {!collapsed ? (
           <Link href="/student/dashboard" className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-slate-950 flex items-center justify-center text-white shadow-sm">
-              <GraduationCap className="w-4 h-4 text-blue-400" />
-            </div>
-            <span className="font-extrabold text-xl tracking-tight text-slate-900">
-              Edu<span className="text-blue-600">Learn</span>
-            </span>
+            <BrandLogo />
           </Link>
         ) : (
-          <div className="mx-auto">
-            <div className="w-8 h-8 rounded-xl bg-slate-950 flex items-center justify-center text-white shadow-sm">
-              <GraduationCap className="w-4 h-4 text-blue-400" />
-            </div>
-          </div>
+          <Link href="/student/dashboard" className="mx-auto" aria-label="EduLearn student dashboard">
+            <BrandLogo compact />
+          </Link>
         )}
 
         {onToggle && !collapsed && (
@@ -192,15 +176,15 @@ export default function StudentSidebar({ collapsed = false, onToggle }) {
           )}
         >
           <Avatar
-            src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80"
-            name="Alex Morgan"
+            src={user?.avatar}
+            name={user?.name || "Student"}
             size="sm"
             className="ring-1 ring-slate-200"
           />
           {!collapsed && (
             <div className="min-w-0 flex-1">
-              <p className="text-xs font-bold text-slate-900 truncate">Alex Morgan</p>
-              <p className="text-[10px] text-blue-600 font-medium truncate">Active Student</p>
+              <p className="text-xs font-bold text-slate-900 truncate">{user?.name || "Student"}</p>
+              <p className="text-[10px] text-blue-600 font-medium truncate">{user?.role || "Student"}</p>
             </div>
           )}
         </Link>

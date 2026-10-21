@@ -20,6 +20,7 @@ import {
 } from "@/components/ui";
 import { Badge, Input, Textarea } from "@/components/ui";
 import FAQItem from "@/components/forms/FAQItem.jsx";
+import ContactForm from "@/components/forms/ContactForm.jsx";
 
 const contactInfo = [
   {
@@ -180,81 +181,7 @@ export default function ContactPage() {
           </div>
 
           <div className="lg:col-span-3">
-            <Card className="shadow-sm border-[#E2E8F0] overflow-hidden">
-              <CardHeader className="bg-[#F8FAFC] border-b border-[#E2E8F0] pb-5">
-                <CardTitle className="text-xl text-[#0F172A]">Send us a message</CardTitle>
-                <p className="text-[#64748B] text-sm mt-1.5">
-                  Fill out the form below and our team will get back to you within 24 hours.
-                </p>
-              </CardHeader>
-              <CardContent className="pt-6">
-                <form className="space-y-4" action="#">
-                  <div className="grid sm:grid-cols-2 gap-4">
-                    <div>
-                      <label htmlFor="c-name" className="label-base">
-                        Full Name
-                      </label>
-                      <Input id="c-name" placeholder="John Doe" />
-                    </div>
-                    <div>
-                      <label htmlFor="c-email" className="label-base">
-                        Email Address
-                      </label>
-                      <Input id="c-email" type="email" placeholder="john@example.com" />
-                    </div>
-                  </div>
-                  <div className="grid sm:grid-cols-2 gap-4">
-                    <div>
-                      <label htmlFor="c-subject" className="label-base">
-                        Subject
-                      </label>
-                      <Input id="c-subject" placeholder="How can we help?" />
-                    </div>
-                    <div>
-                      <label htmlFor="c-type" className="label-base">
-                        Inquiry Type
-                      </label>
-                      <select
-                        id="c-type"
-                        defaultValue="general"
-                        className="input-base appearance-none bg-no-repeat bg-[right_0.75rem_center] pr-10"
-                        style={{
-                          backgroundImage:
-                            "url(\"data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e\")",
-                          backgroundSize: "1.5em 1.5em",
-                        }}
-                      >
-                        <option value="general">General Inquiry</option>
-                        <option value="support">Technical Support</option>
-                        <option value="billing">Billing & Refunds</option>
-                        <option value="partnership">Partnerships</option>
-                        <option value="press">Press & Media</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div>
-                    <label htmlFor="c-message" className="label-base">
-                      Message
-                    </label>
-                    <Textarea
-                      id="c-message"
-                      rows={6}
-                      placeholder="Tell us a little more about what you need..."
-                    />
-                  </div>
-                  <div className="pt-2">
-                    <Button
-                      type="submit"
-                      size="lg"
-                      className="h-12 px-7 shadow-sm"
-                      rightIcon={<Send className="h-4 w-4" />}
-                    >
-                      Send Message
-                    </Button>
-                  </div>
-                </form>
-              </CardContent>
-            </Card>
+            <ContactForm />
           </div>
         </div>
       </section>

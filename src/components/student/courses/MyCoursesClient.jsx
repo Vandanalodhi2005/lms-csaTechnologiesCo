@@ -10,8 +10,6 @@ import Button from "@/components/ui/Button.jsx";
 import EmptyState from "@/components/ui/EmptyState.jsx";
 import StudentMobileNav from "@/components/dashboard/StudentMobileNav.jsx";
 import StudentSidebar from "@/components/dashboard/StudentSidebar.jsx";
-import { student } from "@/constants/studentDashboard.js";
-import { studentCourses } from "@/constants/studentCourses.js";
 import { cn } from "@/utils";
 import {
   ArrowDownWideNarrow,
@@ -98,13 +96,8 @@ function formatLastAccessed(dateValue) {
 }
 
 function courseActionHref(course) {
-  if (!course.learningSlug) return `/courses/${course.slug}`;
-  const lessonId = course.status === "Not Started"
-    ? "lesson-01"
-    : course.status === "Completed"
-      ? "lesson-07"
-      : course.lastAccessedLesson?.id || "lesson-01";
-  return `/learn/${course.learningSlug}/${lessonId}`;
+  if (!course.learningSlug || !course.lastAccessedLesson?.id) return `/courses/${course.slug}`;
+  return `/learn/${course.learningSlug}/${course.lastAccessedLesson.id}`;
 }
 
 function matchesProgress(course, filter) {
@@ -191,7 +184,7 @@ function ConfirmationDialog({ course, onCancel, onConfirm }) {
   );
 }
 
-function StudentCourseCard({ course, onRemove }) {
+function StudentCourseCard({ course }) {
   const [menuOpen, setMenuOpen] = React.useState(false);
   const actionHref = courseActionHref(course);
   const actionLabel = course.status === "Not Started"
@@ -228,7 +221,6 @@ function StudentCourseCard({ course, onRemove }) {
             </summary>
             <div className="absolute right-0 z-10 mt-2 w-48 rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg">
               <Link href={`/courses/${course.slug}`} className="block rounded-lg px-3 py-2 text-sm text-slate-700 hover:bg-slate-50">View Course</Link>
-              <button type="button" onClick={() => onRemove(course)} className="block w-full rounded-lg px-3 py-2 text-left text-sm text-red-700 hover:bg-red-50">Remove from My Courses</button>
             </div>
           </details>
         </div>
@@ -290,7 +282,7 @@ function StudentCourseCard({ course, onRemove }) {
   );
 }
 
-export default function MyCoursesClient() {
+function LegacyMyCoursesClient() {
   const [courses, setCourses] = React.useState(studentCourses);
   const [activeTab, setActiveTab] = React.useState("all");
   const [search, setSearch] = React.useState("");
@@ -551,6 +543,99 @@ export default function MyCoursesClient() {
       </div>
 
       {removingCourse ? <ConfirmationDialog course={removingCourse} onCancel={() => setRemovingCourse(null)} onConfirm={confirmRemoval} /> : null}
+    </div>
+  );
+}
+
+export default function MyCoursesClient() {
+  const [courses, setCourses] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState("");
+  const [search, setSearch] = React.useState("");
+  const [activeTab, setActiveTab] = React.useState("all");
+  const [page, setPage] = React.useState(1);
+  const pageSize = 6;
+
+  const loadCourses = React.useCallback(async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const fetchPage = async (pageNumber) => {
+        const response = await fetch(`/api/users?action=enrollments&page=${pageNumber}&limit=50`, { cache: "no-store" });
+        const result = await response.json();
+        if (!response.ok || !result.success) throw new Error(result.message || "Could not load your courses.");
+        return result.data;
+      };
+      const firstPage = await fetchPage(1);
+      const remainingPages = await Promise.all(Array.from({ length: Math.max(0, firstPage.totalPages - 1) }, (_, index) => fetchPage(index + 2)));
+      const enrollments = [...(firstPage.enrollments || []), ...remainingPages.flatMap((result) => result.enrollments || [])];
+      const mappedCourses = await Promise.all(enrollments.map(async (enrollment) => {
+        const course = enrollment.courseId;
+        if (!course?._id || !course.slug) return null;
+        let lesson = enrollment.lastLessonId ? { id: String(enrollment.lastLessonId), title: "Your last lesson" } : null;
+        if (!lesson) {
+          try {
+            const response = await fetch(`/api/courses?action=curriculum&id=${encodeURIComponent(course._id)}`, { cache: "no-store" });
+            const result = await response.json();
+            const firstLesson = result.success ? result.data.flatMap((module) => module.lessons || [])[0] : null;
+            if (firstLesson) lesson = { id: String(firstLesson._id), title: firstLesson.title };
+          } catch {
+            lesson = null;
+          }
+        }
+        const progress = Math.max(0, Math.min(100, Number(enrollment.progress) || 0));
+        return {
+          id: String(enrollment._id),
+          courseId: String(course._id),
+          slug: course.slug,
+          learningSlug: course.slug,
+          title: course.title,
+          shortDescription: course.shortDescription || "",
+          category: course.categoryId?.name || "Course",
+          level: course.level || "All levels",
+          instructor: { name: course.instructorId?.name || "Instructor", avatar: course.instructorId?.avatar || null },
+          thumbnail: course.thumbnail || null,
+          rating: Number(course.rating) || 0,
+          reviewCount: Number(course.reviewCount) || 0,
+          enrolledAt: enrollment.enrolledAt || enrollment.createdAt,
+          completedLessons: Number(enrollment.lessonsCompleted) || 0,
+          totalLessons: Number(enrollment.totalLessons) || 0,
+          progress,
+          status: enrollment.isCompleted ? "Completed" : progress > 0 ? "In Progress" : "Not Started",
+          lastAccessedAt: enrollment.lastAccessAt,
+          lastAccessedLesson: lesson,
+        };
+      }));
+      setCourses(mappedCourses.filter(Boolean));
+    } catch (loadError) {
+      setError(loadError.message || "Could not load your courses. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  React.useEffect(() => { loadCourses(); }, [loadCourses]);
+  React.useEffect(() => { setPage(1); }, [activeTab, search]);
+
+  const filteredCourses = courses.filter((course) => {
+    const query = search.trim().toLowerCase();
+    const matchesSearch = !query || [course.title, course.instructor.name, course.category].some((value) => value.toLowerCase().includes(query));
+    const matchesTab = activeTab === "all" || (activeTab === "completed" ? course.status === "Completed" : activeTab === "in-progress" ? course.status === "In Progress" : course.status === "Not Started");
+    return matchesSearch && matchesTab;
+  });
+  const totalPages = Math.max(1, Math.ceil(filteredCourses.length / pageSize));
+  const visibleCourses = filteredCourses.slice((page - 1) * pageSize, page * pageSize);
+  const tabs = [{ id: "all", label: "All", count: courses.length }, { id: "in-progress", label: "In progress", count: courses.filter((course) => course.status === "In Progress").length }, { id: "completed", label: "Completed", count: courses.filter((course) => course.status === "Completed").length }, { id: "not-started", label: "Not started", count: courses.filter((course) => course.status === "Not Started").length }];
+
+  return (
+    <div className="mx-auto max-w-6xl space-y-6 pb-8">
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-xs font-semibold uppercase tracking-[0.14em] text-blue-700">Learning library</p><h1 className="mt-1 text-3xl font-bold tracking-tight text-slate-900">My Courses</h1><p className="mt-2 text-sm text-slate-600">Continue where you left off or review a completed course.</p></div><Link href="/courses" className="inline-flex min-h-11 items-center gap-2 self-start rounded-xl bg-[#0F2F5F] px-4 text-sm font-semibold text-white hover:bg-[#143A72]">Browse courses <ArrowRight className="h-4 w-4" /></Link></header>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">{[{ label: "Enrolled", count: courses.length }, { label: "In progress", count: tabs[1].count }, { label: "Completed", count: tabs[2].count }, { label: "Not started", count: tabs[3].count }].map((stat) => <article key={stat.label} className="rounded-xl border border-slate-200 bg-white p-4"><p className="text-sm text-slate-500">{stat.label}</p><p className="mt-2 text-2xl font-bold text-slate-900">{loading ? "—" : stat.count}</p></article>)}</div>
+      {error ? <div role="alert" className="flex flex-col gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800 sm:flex-row sm:items-center sm:justify-between"><span>{error}</span><Button type="button" variant="outline" onClick={loadCourses}>Retry</Button></div> : null}
+      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6" aria-label="Enrolled course library">
+        <div className="flex flex-col gap-4 border-b border-slate-200 pb-4 sm:flex-row sm:items-center sm:justify-between"><div className="flex flex-wrap gap-2" role="tablist" aria-label="Filter courses by status">{tabs.map((tab) => <button key={tab.id} type="button" role="tab" aria-selected={activeTab === tab.id} onClick={() => setActiveTab(tab.id)} className={cn("min-h-10 rounded-lg border px-3 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-600", activeTab === tab.id ? "border-blue-200 bg-blue-50 text-blue-700" : "border-slate-200 text-slate-600 hover:bg-slate-50")}>{tab.label} <span className="ml-1 text-xs">{tab.count}</span></button>)}</div><label className="sr-only" htmlFor="my-course-search">Search enrolled courses</label><input id="my-course-search" type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search your courses" className="min-h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15 sm:max-w-sm" /></div>
+        {loading ? <div role="status" className="flex min-h-48 items-center justify-center text-sm text-slate-600"><span className="mr-2 h-5 w-5 animate-spin rounded-full border-2 border-slate-300 border-t-blue-600" />Loading your courses</div> : visibleCourses.length ? <><div className="grid gap-4 py-5 sm:grid-cols-2 xl:grid-cols-3">{visibleCourses.map((course) => <article key={course.id} className="min-w-0 overflow-hidden rounded-xl border border-slate-200"><div className="relative aspect-video bg-slate-100">{course.thumbnail ? <Image src={course.thumbnail} alt="" fill sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 33vw" className="object-cover" /> : <div className="flex h-full items-center justify-center text-slate-400"><BookOpen className="h-8 w-8" /></div>}</div><div className="p-4"><div className="flex items-start justify-between gap-3"><h2 className="line-clamp-2 font-bold text-slate-900">{course.title}</h2><Badge variant={getStatusVariant(course.status)}>{course.status}</Badge></div><p className="mt-1 truncate text-sm text-slate-600">{course.instructor.name}</p><div className="mt-4 flex items-center justify-between text-xs text-slate-600"><span>{course.completedLessons} / {course.totalLessons} lessons</span><span>{course.progress}%</span></div><div className="mt-1.5 h-2 overflow-hidden rounded-full bg-slate-100" role="progressbar" aria-label={`${course.title} progress`} aria-valuenow={course.progress} aria-valuemin={0} aria-valuemax={100}><div className="h-full bg-blue-600" style={{ width: `${course.progress}%` }} /></div><p className="mt-3 line-clamp-2 min-h-10 text-sm text-slate-600">{course.shortDescription}</p><div className="mt-4 flex gap-2"><Link href={courseActionHref(course)} className="inline-flex min-h-10 flex-1 items-center justify-center gap-2 rounded-lg bg-[#0F2F5F] px-3 text-sm font-semibold text-white hover:bg-[#143A72]">{course.status === "Not Started" ? "Start course" : course.status === "Completed" ? "Review course" : "Continue learning"}<ArrowRight className="h-4 w-4" /></Link><Link href={`/courses/${course.slug}`} aria-label={`View ${course.title}`} className="inline-flex min-h-10 items-center justify-center rounded-lg border border-slate-200 px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50">View</Link></div></div></article>)}</div>{totalPages > 1 ? <nav aria-label="Course pagination" className="flex items-center justify-between border-t border-slate-200 pt-4"><span className="text-sm text-slate-600">Page {page} of {totalPages}</span><div className="flex gap-2"><Button type="button" variant="outline" disabled={page === 1} onClick={() => setPage((current) => current - 1)}>Previous</Button><Button type="button" variant="outline" disabled={page === totalPages} onClick={() => setPage((current) => current + 1)}>Next</Button></div></nav> : null}</> : <div className="py-12 text-center"><BookOpen className="mx-auto h-9 w-9 text-slate-400" /><h2 className="mt-3 text-lg font-semibold text-slate-900">{courses.length ? "No courses match these filters" : "No enrolled courses yet"}</h2><p className="mt-1 text-sm text-slate-600">{courses.length ? "Try a different search or status." : "Your courses will appear here after enrollment."}</p>{!courses.length ? <Link href="/courses" className="mt-4 inline-flex min-h-10 items-center rounded-lg bg-[#0F2F5F] px-4 text-sm font-semibold text-white">Browse courses</Link> : null}</div>}
+      </section>
     </div>
   );
 }

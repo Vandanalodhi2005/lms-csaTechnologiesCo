@@ -1,42 +1,132 @@
+import { createHash, randomBytes } from "node:crypto";
 import dbConnect from "@/lib/db";
 import { User } from "@/models";
 import { hashPassword, verifyPassword } from "@/lib/password";
-import { setAuthCookie, clearAuthCookie, verifyToken } from "@/lib/auth";
-import { generateVerificationCode } from "@/utils";
+import { assertJwtSecret, setAuthCookie, clearAuthCookie, verifyToken } from "@/lib/auth";
 import { ROLES } from "@/constants";
+import {
+  sendFormNotificationToAdmin,
+  sendWelcomeEmail,
+  sendVerificationEmail,
+  sendPasswordResetEmail as sendEmailPasswordReset,
+} from "@/lib/email";
+
+const VERIFICATION_TOKEN_TTL_MS = 24 * 60 * 60 * 1000;
+const VERIFICATION_RESEND_COOLDOWN_MS = 60 * 1000;
+
+function createVerificationToken() {
+  return randomBytes(32).toString("hex");
+}
+
+function hashVerificationToken(token) {
+  return createHash("sha256").update(token).digest("hex");
+}
+
+function createVerificationUrl(email, token) {
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  const url = new URL("/auth/verify-email", baseUrl);
+  url.searchParams.set("token", token);
+  url.searchParams.set("email", email);
+  return url.toString();
+}
 
 export async function registerUser(userData) {
   await dbConnect();
   const { name, email, password, role } = userData;
+
+  // Prevent admin creation through public registration
+  const safeRole =
+    role === ROLES.INSTRUCTOR ? ROLES.INSTRUCTOR : ROLES.STUDENT;
+
   const existingUser = await User.findOne({ email });
   if (existingUser) {
     throw new Error("A user with this email already exists");
   }
+
   const passwordHash = await hashPassword(password);
-  const emailVerificationToken = generateVerificationCode();
+  const verificationToken = createVerificationToken();
+  const emailVerificationToken = hashVerificationToken(verificationToken);
+  const emailVerificationSentAt = new Date();
+
   const user = await User.create({
     name,
     email,
     passwordHash,
-    role: role || ROLES.STUDENT,
+    role: safeRole,
+    isEmailVerified: false,
+    isActive: true,
     emailVerificationToken,
-    emailVerificationExpires: new Date(Date.now() + 24 * 60 * 60 * 1000),
+    emailVerificationExpires: new Date(Date.now() + VERIFICATION_TOKEN_TTL_MS),
+    emailVerificationSentAt,
   });
-  return user.toObject();
+
+  const payload = {
+    id: user._id.toString(),
+    email: user.email,
+    name: user.name,
+    role: user.role,
+    avatar: user.avatar,
+  };
+
+  const verificationEmail = await sendVerificationEmail({
+    to: email,
+    name,
+    verificationUrl: createVerificationUrl(email, verificationToken),
+  });
+  if (!verificationEmail.success) {
+    console.error("[Auth Service] Verification email could not be sent.");
+    user.emailVerificationSentAt = null;
+    await user.save();
+  }
+
+  sendFormNotificationToAdmin({
+    formType: "User Registration",
+    title: `New ${safeRole.toUpperCase()} Account Created: ${name}`,
+    data: {
+      "Account Type": safeRole.toUpperCase(),
+      "Full Name": name,
+      "Email Address": email,
+      "Account Status": "Awaiting email verification",
+      "Registration Time": new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" }),
+    },
+    userEmail: email,
+  }).catch((err) => console.error("[Auth Service] Admin notification error:", err.message));
+
+  return {
+    payload: { ...payload, isEmailVerified: false },
+    verificationEmailSent: verificationEmail.success,
+  };
 }
 
 export async function loginUser({ email, password }) {
+  assertJwtSecret();
   await dbConnect();
   const user = await User.findOne({ email }).select("+passwordHash");
   if (!user) {
-    throw new Error("Invalid email or password");
+    const error = new Error("Invalid email or password");
+    error.statusCode = 401;
+    throw error;
   }
   if (!user.isActive) {
-    throw new Error("Your account has been deactivated");
+    const error = new Error("Your account has been deactivated");
+    error.statusCode = 403;
+    throw error;
+  }
+  if (!user.isEmailVerified) {
+    const error = new Error("Please verify your email address before logging in.");
+    error.statusCode = 403;
+    throw error;
+  }
+  if (!user.passwordHash) {
+    const error = new Error("Invalid email or password");
+    error.statusCode = 401;
+    throw error;
   }
   const isValid = await verifyPassword(password, user.passwordHash);
   if (!isValid) {
-    throw new Error("Invalid email or password");
+    const error = new Error("Invalid email or password");
+    error.statusCode = 401;
+    throw error;
   }
   user.lastLoginAt = new Date();
   await user.save();
@@ -48,6 +138,20 @@ export async function loginUser({ email, password }) {
     avatar: user.avatar,
   };
   await setAuthCookie(payload);
+
+  // Send security login notification to admin email
+  sendFormNotificationToAdmin({
+    formType: "User Login",
+    title: `Login Activity: ${user.name} (${user.role})`,
+    data: {
+      "User Name": user.name,
+      "Email Address": user.email,
+      "Role": user.role,
+      "Login Time": new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" }),
+    },
+    userEmail: user.email,
+  }).catch((err) => console.error("[Auth Service] Login alert error:", err.message));
+
   return payload;
 }
 
@@ -59,17 +163,70 @@ export async function logoutUser() {
 export async function verifyUserEmail(token) {
   await dbConnect();
   const user = await User.findOne({
-    emailVerificationToken: token,
+    emailVerificationToken: hashVerificationToken(token),
     emailVerificationExpires: { $gt: new Date() },
   });
   if (!user) {
-    throw new Error("Invalid or expired verification token");
+    const error = new Error("Invalid or expired verification token");
+    error.statusCode = 400;
+    throw error;
   }
   user.isEmailVerified = true;
   user.emailVerificationToken = null;
   user.emailVerificationExpires = null;
+  user.emailVerificationSentAt = null;
   await user.save();
-  return user.toObject();
+  sendWelcomeEmail({
+    to: user.email,
+    name: user.name,
+    role: user.role,
+  }).then((result) => {
+    if (!result.success) {
+      console.error("[Auth Service] Welcome email could not be sent.");
+    }
+  }).catch((error) => {
+    console.error("[Auth Service] Welcome email error:", error.message);
+  });
+  return { id: user._id.toString(), email: user.email, name: user.name };
+}
+
+export async function resendVerificationEmail(email) {
+  await dbConnect();
+  const user = await User.findOne({ email }).select(
+    "+emailVerificationToken +emailVerificationExpires +emailVerificationSentAt"
+  );
+  if (!user || user.isEmailVerified) {
+    return { success: true, message: "If this account needs verification, an email will be sent shortly." };
+  }
+
+  const now = Date.now();
+  if (
+    user.emailVerificationSentAt &&
+    now - user.emailVerificationSentAt.getTime() < VERIFICATION_RESEND_COOLDOWN_MS
+  ) {
+    return { success: true, message: "If this account needs verification, an email will be sent shortly." };
+  }
+
+  const verificationToken = createVerificationToken();
+  user.emailVerificationToken = hashVerificationToken(verificationToken);
+  user.emailVerificationExpires = new Date(now + VERIFICATION_TOKEN_TTL_MS);
+  user.emailVerificationSentAt = new Date(now);
+  await user.save();
+
+  const result = await sendVerificationEmail({
+    to: user.email,
+    name: user.name,
+    verificationUrl: createVerificationUrl(user.email, verificationToken),
+  });
+  if (!result.success) {
+    user.emailVerificationSentAt = null;
+    await user.save();
+    const error = new Error("Unable to send the verification email. Please try again later.");
+    error.statusCode = 503;
+    throw error;
+  }
+
+  return { success: true, message: "If this account needs verification, an email will be sent shortly." };
 }
 
 export async function sendPasswordResetEmail(email) {
@@ -78,10 +235,34 @@ export async function sendPasswordResetEmail(email) {
   if (!user) {
     return { success: true, message: "If a user with this email exists, a reset link has been sent" };
   }
-  const token = generateVerificationCode();
+  const token = randomBytes(32).toString("hex");
   user.passwordResetToken = token;
   user.passwordResetExpires = new Date(Date.now() + 60 * 60 * 1000);
   await user.save();
+
+  const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/auth/reset-password?token=${token}`;
+
+  // Send real email via nodemailer
+  await sendEmailPasswordReset({
+    to: user.email,
+    name: user.name,
+    resetUrl,
+    token,
+  }).catch((err) => console.error("[Auth Service] Password reset email error:", err.message));
+
+  // Also notify admin
+  sendFormNotificationToAdmin({
+    formType: "Password Reset Request",
+    title: `Password Reset Requested by ${user.name}`,
+    data: {
+      "User Name": user.name,
+      "Email Address": user.email,
+      "Reset Token": token,
+      "Time Requested": new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" }),
+    },
+    userEmail: user.email,
+  }).catch((err) => console.error("[Auth Service] Reset notification error:", err.message));
+
   return {
     success: true,
     message: "If a user with this email exists, a reset link has been sent",

@@ -16,6 +16,7 @@ import {
   Award,
   BookOpen,
   BriefcaseBusiness,
+  Camera,
   Check,
   CheckCircle2,
   ChevronRight,
@@ -83,7 +84,7 @@ function ConfirmDiscardDialog({ onKeepEditing, onDiscard }) {
   return <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4"><section ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="discard-profile-title" className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl sm:p-6"><h2 id="discard-profile-title" className="text-xl font-bold text-slate-900">Discard your unsaved changes?</h2><p className="mt-2 text-sm leading-6 text-slate-600">Your profile edits will be restored to the last saved local state.</p><div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><Button ref={keepRef} type="button" variant="outline" onClick={onKeepEditing}>Keep Editing</Button><Button type="button" variant="destructive" onClick={onDiscard}>Discard Changes</Button></div></section></div>;
 }
 
-export default function StudentProfileClient() {
+function LegacyStudentProfileClient() {
   const [savedProfile, setSavedProfile] = React.useState(() => cloneProfile(studentProfile));
   const [draft, setDraft] = React.useState(() => cloneProfile(studentProfile));
   const [savedAvatarPreview, setSavedAvatarPreview] = React.useState(null);
@@ -280,4 +281,211 @@ export default function StudentProfileClient() {
 
 function AccountLine({ label, value }) {
   return <div className="flex items-start justify-between gap-3 text-sm"><dt className="text-slate-500">{label}</dt><dd className="text-right font-medium text-slate-900">{value}</dd></div>;
+}
+
+const profileDefaults = {
+  name: "",
+  email: "",
+  phone: "",
+  bio: "",
+  avatar: null,
+  socialLinks: { website: "", twitter: "", linkedin: "", youtube: "", github: "" },
+};
+
+function normalizeProfile(user) {
+  return {
+    ...profileDefaults,
+    ...user,
+    phone: user.phone || "",
+    bio: user.bio || "",
+    socialLinks: { ...profileDefaults.socialLinks, ...user.socialLinks },
+  };
+}
+
+function Field({ label, name, value, onChange, type = "text", maxLength, required = false }) {
+  return (
+    <div className="min-w-0">
+      <label htmlFor={`profile-${name}`} className="block text-sm font-semibold text-slate-800">{label}</label>
+      <input id={`profile-${name}`} name={name} type={type} value={value} maxLength={maxLength} required={required} onChange={onChange} className="mt-2 min-h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15" />
+    </div>
+  );
+}
+
+function LiveStudentProfile() {
+  const [profile, setProfile] = React.useState(null);
+  const [draft, setDraft] = React.useState(null);
+  const [avatarFile, setAvatarFile] = React.useState(null);
+  const [avatarPreview, setAvatarPreview] = React.useState("");
+  const [loading, setLoading] = React.useState(true);
+  const [saving, setSaving] = React.useState(false);
+  const [editing, setEditing] = React.useState(false);
+  const [error, setError] = React.useState("");
+  const [success, setSuccess] = React.useState("");
+  const fileInputRef = React.useRef(null);
+  const avatarPreviewRef = React.useRef(null);
+
+  const loadProfile = React.useCallback(async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const response = await fetch("/api/auth/me", { cache: "no-store" });
+      const result = await response.json();
+      if (!response.ok || !result.success) throw new Error(result.message || "Could not load your profile.");
+      const saved = normalizeProfile(result.data);
+      setProfile(saved);
+      setDraft(saved);
+      setAvatarPreview(saved.avatar || "");
+    } catch (loadError) {
+      setError(loadError.message || "Could not load your profile. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  React.useEffect(() => { loadProfile(); }, [loadProfile]);
+
+  React.useEffect(() => () => {
+    if (avatarPreviewRef.current) URL.revokeObjectURL(avatarPreviewRef.current);
+  }, []);
+
+  const updateDraft = (event) => {
+    const { name, value } = event.target;
+    setDraft((current) => ({ ...current, [name]: value }));
+    setError("");
+    setSuccess("");
+  };
+
+  const updateSocialLink = (event) => {
+    const { name, value } = event.target;
+    setDraft((current) => ({ ...current, socialLinks: { ...current.socialLinks, [name]: value } }));
+    setError("");
+    setSuccess("");
+  };
+
+  const chooseAvatar = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size > 5 * 1024 * 1024) {
+      setError("Choose a JPG, PNG, or WEBP image under 5 MB.");
+      event.target.value = "";
+      return;
+    }
+    if (avatarPreviewRef.current) URL.revokeObjectURL(avatarPreviewRef.current);
+    avatarPreviewRef.current = URL.createObjectURL(file);
+    setAvatarFile(file);
+    setAvatarPreview(avatarPreviewRef.current);
+    setError("");
+    setSuccess("");
+  };
+
+  const cancelEditing = () => {
+    setDraft(profile);
+    setAvatarFile(null);
+    if (avatarPreviewRef.current) URL.revokeObjectURL(avatarPreviewRef.current);
+    avatarPreviewRef.current = null;
+    setAvatarPreview(profile?.avatar || "");
+    setEditing(false);
+    setError("");
+    setSuccess("");
+  };
+
+  const saveProfile = async (event) => {
+    event.preventDefault();
+    if (saving || !draft) return;
+    if (draft.name.trim().length < 2 || draft.name.trim().length > 100) {
+      setError("Name must be between 2 and 100 characters.");
+      return;
+    }
+    if (draft.phone.length > 20 || draft.bio.length > 1000) {
+      setError("Phone must be at most 20 characters and bio at most 1,000 characters.");
+      return;
+    }
+
+    setSaving(true);
+    setError("");
+    setSuccess("");
+    try {
+      const response = await fetch("/api/auth/me?action=profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: draft.name.trim(),
+          phone: draft.phone.trim() || null,
+          bio: draft.bio.trim() || null,
+          socialLinks: Object.fromEntries(Object.entries(draft.socialLinks).map(([key, value]) => [key, value.trim() || null])),
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok || !result.success) throw new Error(result.message || "Could not save your profile.");
+
+      let saved = normalizeProfile(result.data);
+      setProfile(saved);
+      setDraft(saved);
+
+      if (avatarFile) {
+        const formData = new FormData();
+        formData.set("avatar", avatarFile);
+        const avatarResponse = await fetch("/api/auth/me?action=avatar", { method: "PUT", body: formData });
+        const avatarResult = await avatarResponse.json();
+        if (!avatarResponse.ok || !avatarResult.success) throw new Error(avatarResult.message || "Profile saved, but the photo could not be uploaded.");
+        saved = normalizeProfile({ ...saved, ...avatarResult.data });
+        setProfile(saved);
+        setDraft(saved);
+        if (avatarPreviewRef.current) URL.revokeObjectURL(avatarPreviewRef.current);
+        avatarPreviewRef.current = null;
+        setAvatarPreview(saved.avatar || "");
+      }
+
+      setAvatarFile(null);
+      setEditing(false);
+      setSuccess("Profile saved.");
+    } catch (saveError) {
+      setError(saveError.message || "Could not save your profile. Please try again.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) return <div className="flex min-h-64 items-center justify-center text-sm text-slate-600" role="status"><span className="mr-2 h-5 w-5 animate-spin rounded-full border-2 border-slate-300 border-t-blue-600" />Loading profile</div>;
+  if (!profile || !draft) return <section className="rounded-2xl border border-red-200 bg-white p-6" role="alert"><h1 className="text-xl font-bold text-slate-900">Profile unavailable</h1><p className="mt-2 text-sm text-red-700">{error}</p><Button className="mt-4" type="button" variant="outline" onClick={loadProfile}>Try again</Button></section>;
+
+  return (
+    <div className="mx-auto max-w-4xl space-y-6 pb-8">
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div><p className="text-xs font-semibold uppercase tracking-[0.14em] text-blue-700">Learner account</p><h1 className="mt-1 text-3xl font-bold tracking-tight text-slate-900">My Profile</h1><p className="mt-2 text-sm text-slate-600">Update the information saved to your account.</p></div>
+        <Link href="/student/dashboard" className="inline-flex min-h-11 items-center gap-2 self-start rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-600 sm:self-auto">Dashboard</Link>
+      </header>
+
+      {error ? <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800" role="alert">{error}</p> : null}
+      {success ? <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800" role="status">{success}</p> : null}
+
+      <form onSubmit={saveProfile} className="space-y-6">
+        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7" aria-labelledby="profile-heading">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
+            <Avatar src={avatarPreview || profile.avatar} name={profile.name} alt={`${profile.name} profile photo`} size="4xl" />
+            <div className="min-w-0 flex-1"><h2 id="profile-heading" className="text-xl font-bold text-slate-900">{profile.name}</h2><p className="mt-1 break-all text-sm text-slate-600">{profile.email}</p>{editing ? <><input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" aria-label="Choose profile photo" onChange={chooseAvatar} /><Button className="mt-3" type="button" size="sm" variant="outline" disabled={saving} onClick={() => fileInputRef.current?.click()} leftIcon={<Camera className="h-4 w-4" />}>Choose photo</Button><p className="mt-2 text-xs text-slate-500">JPG, PNG, or WEBP; maximum 5 MB.</p></> : null}</div>
+            {!editing ? <Button type="button" onClick={() => { setDraft(profile); setEditing(true); }} leftIcon={<UserRound className="h-4 w-4" />}>Edit Profile</Button> : null}
+          </div>
+
+          <div className="mt-6 grid gap-5 sm:grid-cols-2">
+            {editing ? <Field label="Full name" name="name" value={draft.name} onChange={updateDraft} maxLength={100} required /> : <div><p className="text-sm font-semibold text-slate-700">Full name</p><p className="mt-2 text-sm text-slate-900">{profile.name}</p></div>}
+            <div><label htmlFor="profile-email" className="block text-sm font-semibold text-slate-700">Email</label><input id="profile-email" type="email" value={profile.email} readOnly className="mt-2 min-h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-600" /></div>
+            {editing ? <Field label="Phone" name="phone" value={draft.phone} onChange={updateDraft} maxLength={20} /> : <div><p className="text-sm font-semibold text-slate-700">Phone</p><p className="mt-2 text-sm text-slate-900">{profile.phone || "Not provided"}</p></div>}
+          </div>
+          <div className="mt-5"><label htmlFor="profile-bio" className="block text-sm font-semibold text-slate-700">About me</label>{editing ? <textarea id="profile-bio" name="bio" value={draft.bio} maxLength={1000} onChange={updateDraft} rows={4} className="mt-2 w-full resize-y rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15" /> : <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-700">{profile.bio || "Not provided"}</p>}</div>
+        </section>
+
+        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7" aria-labelledby="social-heading">
+          <h2 id="social-heading" className="text-lg font-bold text-slate-900">Social links</h2>
+          <div className="mt-5 grid gap-5 sm:grid-cols-2">{Object.entries(profile.socialLinks).map(([name, savedValue]) => editing ? <Field key={name} label={name[0].toUpperCase() + name.slice(1)} name={name} value={draft.socialLinks[name] || ""} onChange={updateSocialLink} maxLength={500} /> : <div key={name}><p className="text-sm font-semibold capitalize text-slate-700">{name}</p><p className="mt-2 break-all text-sm text-slate-900">{savedValue || "Not provided"}</p></div>)}</div>
+        </section>
+
+        {editing ? <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end"><Button type="button" variant="outline" disabled={saving} onClick={cancelEditing}>Cancel</Button><Button type="submit" disabled={saving} loading={saving} leftIcon={saving ? undefined : <Save className="h-4 w-4" />}>{saving ? "Saving…" : "Save Profile"}</Button></div> : null}
+      </form>
+    </div>
+  );
+}
+
+export default function StudentProfileClient() {
+  return <LiveStudentProfile />;
 }

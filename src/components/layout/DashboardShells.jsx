@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import Button from "@/components/ui/Button.jsx";
 import Avatar from "@/components/ui/Avatar.jsx";
+import BrandLogo from "./BrandLogo.jsx";
 import Badge from "@/components/ui/Badge.jsx";
 import InstructorSidebar from "./InstructorSidebar.jsx";
 import AdminSidebar from "./AdminSidebar.jsx";
@@ -264,11 +265,8 @@ function GenericDashboardShell({ children, user, Sidebar }) {
           />
           <div className="absolute left-0 top-0 bottom-0 w-80 bg-white border-r border-dark-100 shadow-2xl overflow-y-auto">
             <div className="h-16 flex items-center justify-between px-5 border-b border-dark-100">
-              <Link href="/" className="flex items-center gap-2">
-                <div className="h-8 w-8 rounded-lg gradient-primary flex items-center justify-center">
-                  <GraduationCap className="h-4 w-4 text-white" />
-                </div>
-                <span className="font-bold">LearnHub</span>
+              <Link href="/" className="flex items-center gap-2" aria-label="EduLearn Home">
+                <BrandLogo />
               </Link>
               <button
                 onClick={() => setMobileOpen(false)}

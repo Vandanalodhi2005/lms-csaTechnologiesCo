@@ -6,6 +6,7 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  
   images: {
     remotePatterns: [
       {
@@ -31,7 +32,15 @@ const nextConfig = {
     ],
   },
   experimental: {
-    serverComponentsExternalPackages: ["mongoose", "cloudinary", "razorpay"],
+    serverComponentsExternalPackages: ["mongoose", "cloudinary", "razorpay", "nodemailer"],
+  },
+  async rewrites() {
+    return [
+      {
+        source: "/admin/login",
+        destination: "/auth/admin",
+      },
+    ];
   },
 };
 

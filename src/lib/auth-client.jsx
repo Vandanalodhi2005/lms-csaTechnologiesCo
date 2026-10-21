@@ -31,17 +31,42 @@ export function AuthProvider({ children, initialUser = null }) {
     }
   }
 
+  async function register(data) {
+    const res = await fetch("/api/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    const json = await res.json();
+    return json;
+  }
+
   async function login(data) {
     const res = await fetch("/api/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     });
-    const json = await res.json();
-    if (json.success) {
+    const json = await res.json().catch(() => null);
+    if (!json || typeof json !== "object") {
+      return {
+        success: false,
+        message:
+          res.status >= 500
+            ? "The login service encountered a server error. Please try again later."
+            : "The server returned an invalid login response.",
+      };
+    }
+    if (res.ok && json.success) {
       setUser(json.data);
     }
-    return json;
+    return res.ok
+      ? json
+      : {
+          ...json,
+          success: false,
+          message: json.message || "Unable to sign in. Please try again.",
+        };
   }
 
   async function logout() {
@@ -54,7 +79,9 @@ export function AuthProvider({ children, initialUser = null }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, setUser, isLoading, refreshUser, login, logout }}>
+    <AuthContext.Provider
+      value={{ user, setUser, isLoading, refreshUser, login, logout, register }}
+    >
       {children}
     </AuthContext.Provider>
   );

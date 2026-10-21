@@ -5,7 +5,6 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/utils";
 import {
-  GraduationCap,
   LayoutDashboard,
   BookOpen,
   PlusCircle,
@@ -24,6 +23,7 @@ import Button from "@/components/ui/Button.jsx";
 import Avatar from "@/components/ui/Avatar.jsx";
 import Badge from "@/components/ui/Badge.jsx";
 import StudentSidebar from "./StudentSidebar.jsx";
+import BrandLogo from "./BrandLogo.jsx";
 import { useAuth } from "@/lib/auth-client.jsx";
 import { toast } from "sonner";
 
@@ -59,7 +59,7 @@ function buildSidebar(RoleSidebar) {
     };
 
     const sidebarProps = RoleSidebar === StudentSidebar
-      ? { collapsed, onToggle: () => setCollapsed((v) => !v) }
+      ? { collapsed, user, onToggle: () => setCollapsed((v) => !v) }
       : { collapsed, onToggle: () => setCollapsed((v) => !v) };
 
     return (
@@ -77,10 +77,7 @@ function buildSidebar(RoleSidebar) {
             <div className="absolute left-0 top-0 bottom-0 w-72 bg-white border-r border-dark-100 shadow-2xl overflow-y-auto">
               <div className="h-16 flex items-center justify-between px-5 border-b border-dark-100">
                 <Link href="/" className="flex items-center gap-2">
-                  <div className="h-8 w-8 rounded-lg gradient-primary flex items-center justify-center">
-                    <GraduationCap className="h-4 w-4 text-white" />
-                  </div>
-                  <span className="font-bold">LearnHub</span>
+                  <BrandLogo compact />
                 </Link>
                 <button
                   onClick={() => setMobileOpen(false)}
@@ -90,7 +87,7 @@ function buildSidebar(RoleSidebar) {
                 </button>
               </div>
               <div className="py-2">
-                <RoleSidebar />
+                <RoleSidebar user={user} />
               </div>
             </div>
           </div>

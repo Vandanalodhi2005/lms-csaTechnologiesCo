@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import BrandLogo from "./BrandLogo.jsx";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/utils";
@@ -8,7 +9,6 @@ import {
   Search,
   Menu,
   X,
-  GraduationCap,
   ShoppingCart,
   Bell,
   Heart,
@@ -30,8 +30,8 @@ import { toast } from "sonner";
 
 const navLinks = [
   { label: "Courses", href: "/courses" },
-  { label: "Categories", href: "/categories" },
   { label: "Instructors", href: "/instructors" },
+  { label: "Blog", href: "/blog" },
   { label: "Pricing", href: "/pricing" },
 ];
 
@@ -86,12 +86,7 @@ export default function Navbar() {
     >
       <div className="container-page h-16 flex items-center justify-between gap-4">
         <Link href="/" className="flex items-center gap-2 shrink-0 group">
-          <div className="h-9 w-9 rounded-xl gradient-primary flex items-center justify-center shadow-sm">
-            <GraduationCap className="h-5 w-5 text-white" />
-          </div>
-          <span className="font-bold text-lg tracking-tight text-dark-900 group-hover:text-primary-700 transition-colors">
-            Learn<span className="text-primary-600">Hub</span>
-          </span>
+          <BrandLogo />
         </Link>
 
         <div className="hidden lg:flex items-center gap-8 flex-1 max-w-2xl">

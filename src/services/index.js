@@ -3,6 +3,7 @@ import {
   loginUser,
   logoutUser,
   verifyUserEmail,
+  resendVerificationEmail,
   sendPasswordResetEmail,
   resetPassword,
   getCurrentUser,
@@ -47,6 +48,7 @@ import {
 import {
   createEnrollment,
   getStudentEnrollments,
+  getStudentSummary,
   getEnrollment,
   getCourseStudents,
   updateLessonProgress,
@@ -106,12 +108,18 @@ import {
   getStudentOrders,
   getPlatformAnalytics,
 } from "./payment.service";
+import {
+  getUserNotifications,
+  markUserNotificationRead,
+  markAllUserNotificationsRead,
+} from "./notification.service";
 
 export const authService = {
   register: registerUser,
   login: loginUser,
   logout: logoutUser,
   verifyEmail: verifyUserEmail,
+  resendVerificationEmail,
   forgotPassword: sendPasswordResetEmail,
   resetPassword,
   getCurrentUser,
@@ -129,6 +137,7 @@ export const courseService = {
   delete: deleteCourse,
   getBySlug: getCourseBySlug,
   getById: getCourseById,
+  getCourseById,
   list: listCourses,
   getInstructorCourses,
   submitForReview: submitCourseForReview,
@@ -159,6 +168,7 @@ export const contentService = {
 export const enrollmentService = {
   create: createEnrollment,
   getStudentEnrollments,
+  getStudentSummary,
   get: getEnrollment,
   getCourseStudents,
   updateProgress: updateLessonProgress,
@@ -222,6 +232,12 @@ export const paymentService = {
   getPlatformAnalytics,
 };
 
+export const notificationService = {
+  listForUser: getUserNotifications,
+  markRead: markUserNotificationRead,
+  markAllRead: markAllUserNotificationsRead,
+};
+
 const serviceIndex = {
   auth: authService,
   course: courseService,
@@ -230,6 +246,7 @@ const serviceIndex = {
   quiz: quizService,
   assignment: assignmentService,
   payment: paymentService,
+  notification: notificationService,
 };
 
 export default serviceIndex;

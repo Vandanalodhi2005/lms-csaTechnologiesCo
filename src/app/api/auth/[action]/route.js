@@ -1,9 +1,11 @@
 import { apiResponse, apiError, handleApiError, validateRequest, apiUnauthorized } from "@/lib/response";
 import { authService } from "@/services";
-import { registerSchema, loginSchema, forgotPasswordSchema, resetPasswordSchema, verifyEmailSchema, updateProfileSchema, changePasswordSchema } from "@/validations/auth.validation";
+import { registerSchema, loginSchema, forgotPasswordSchema, resetPasswordSchema, verifyEmailSchema, resendVerificationEmailSchema, updateProfileSchema, changePasswordSchema } from "@/validations/auth.validation";
 import { getAuthUser, requireAuth, clearAuthCookie } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/db";
+import { User } from "@/models";
+import { uploadImage } from "@/lib/cloudinary";
 
 export async function POST(req, { params }) {
   try {
@@ -12,8 +14,14 @@ export async function POST(req, { params }) {
 
     if (action === "register") {
       const data = await validateRequest(registerSchema, body);
-      const user = await authService.register(data);
-      return apiResponse({ user: { id: user._id, email: user.email, name: user.name } }, "Registration successful. Please verify your email.");
+      const result = await authService.register(data);
+      const message = result.verificationEmailSent
+        ? "Account created. Check your email for a verification link before logging in."
+        : "Account created, but we could not send the verification email. Use the resend option to try again.";
+      return apiResponse(
+        { ...result.payload, verificationEmailSent: result.verificationEmailSent },
+        message
+      );
     }
 
     if (action === "login") {
@@ -46,6 +54,12 @@ export async function POST(req, { params }) {
       return apiResponse(user, "Email verified successfully");
     }
 
+    if (action === "resend-verification") {
+      const data = await validateRequest(resendVerificationEmailSchema, body);
+      const result = await authService.resendVerificationEmail(data.email);
+      return apiResponse(result, result.message);
+    }
+
     return apiError("Invalid auth action", 404);
   } catch (error) {
     return handleApiError(error);
@@ -72,6 +86,28 @@ export async function PUT(req) {
     const user = await requireAuth();
     const url = new URL(req.url);
     const action = url.searchParams.get("action");
+
+    if (action === "avatar") {
+      const formData = await req.formData();
+      const file = formData.get("avatar");
+      if (!file || typeof file.arrayBuffer !== "function") {
+        return apiError("Profile photo is required", 400);
+      }
+      if (!["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size < 1 || file.size > 5 * 1024 * 1024) {
+        return apiError("Choose a JPG, PNG, or WEBP image under 5 MB", 400);
+      }
+
+      await dbConnect();
+      const uploaded = await uploadImage(Buffer.from(await file.arrayBuffer()), "lms/avatars");
+      const updatedUser = await User.findByIdAndUpdate(
+        user.id,
+        { avatar: uploaded.secure_url, avatarPublicId: uploaded.public_id },
+        { new: true, runValidators: true }
+      ).select("avatar");
+      if (!updatedUser) return apiError("User not found", 404);
+      return apiResponse({ avatar: updatedUser.avatar }, "Profile photo updated");
+    }
+
     const body = await req.json().catch(() => ({}));
 
     if (action === "profile") {

@@ -8,22 +8,39 @@ export default function MarkLessonComplete({
   initialCompletedCount,
   totalLessons,
   lessonTitle,
+  courseId,
+  lessonId,
 }) {
   const [completed, setCompleted] = useState(Boolean(initialCompleted));
   const [completedCount, setCompletedCount] = useState(Number(initialCompletedCount) || 0);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState("");
 
   const progress = useMemo(() => {
     if (!totalLessons) return 0;
     return Math.min(100, Math.max(0, Math.round((completedCount / totalLessons) * 100)));
   }, [completedCount, totalLessons]);
 
-  const handleToggle = () => {
-    const nextCompleted = !completed;
-    setCompleted(nextCompleted);
-    setCompletedCount((previous) => {
-      const nextCount = nextCompleted ? previous + 1 : previous - 1;
-      return Math.min(totalLessons, Math.max(0, nextCount));
-    });
+  const handleToggle = async () => {
+    if (isSaving || completed) return;
+    const nextCompleted = true;
+    setIsSaving(true);
+    setError("");
+    try {
+      const response = await fetch("/api/users?action=progress", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ courseId, lessonId, isCompleted: nextCompleted, progressPercent: nextCompleted ? 100 : 0 }),
+      });
+      const result = await response.json();
+      if (!response.ok || !result.success) throw new Error(result.message || "Could not update lesson progress.");
+      setCompleted(nextCompleted);
+      setCompletedCount(Number(result.data?.lessonsCompleted) || 0);
+    } catch (requestError) {
+      setError(requestError.message || "Could not update lesson progress.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -31,6 +48,7 @@ export default function MarkLessonComplete({
       <button
         type="button"
         onClick={handleToggle}
+        disabled={isSaving || completed}
         className={[
           "inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2",
           completed
@@ -39,13 +57,15 @@ export default function MarkLessonComplete({
         ].join(" ")}
         aria-pressed={completed}
       >
-        {completed ? (
+        {isSaving ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/50 border-t-white" aria-hidden="true" /> : completed ? (
           <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
         ) : (
           <Circle className="h-4 w-4" aria-hidden="true" />
         )}
         {completed ? "✓ Lesson Completed" : "Mark Lesson Complete"}
       </button>
+
+      {error ? <p className="mt-2 text-xs font-medium text-red-700" role="alert">{error}</p> : null}
 
       <div className="mt-4 space-y-2" aria-label={`${lessonTitle} lesson progress`}>
         <div className="flex items-center justify-between text-sm text-slate-600">

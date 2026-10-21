@@ -1,29 +1,33 @@
 import Link from "next/link";
-import { BookOpen, Mail, Phone } from "lucide-react";
+import { Mail, Phone } from "lucide-react";
+import BrandLogo from "./BrandLogo.jsx";
 
 const footerLinks = {
   learn: {
     title: "Learn",
     items: [
-      { label: "Courses", href: "/courses" },
-      { label: "Categories", href: "/categories" },
+      { label: "Browse Courses", href: "/courses" },
       { label: "Instructors", href: "/instructors" },
+      { label: "Pricing", href: "/pricing" },
+      { label: "Blog & Resources", href: "/blog" },
     ],
   },
   company: {
     title: "Company",
     items: [
-      { label: "About", href: "/about" },
+      { label: "About Us", href: "/about" },
+      { label: "Become an Instructor", href: "/become-instructor" },
       { label: "Contact", href: "/contact" },
       { label: "FAQ", href: "/faq" },
+      { label: "Admin Login", href: "/admin/login" },
     ],
   },
   legal: {
     title: "Legal",
     items: [
-      { label: "Privacy Policy", href: "/privacy-policy" },
-      { label: "Terms", href: "/terms" },
-      { label: "Refund Policy", href: "/refund-policy" },
+      { label: "Privacy Policy", href: "/privacy" },
+      { label: "Terms of Service", href: "/terms" },
+      { label: "Verify Certificate", href: "/verify-certificate" },
     ],
   },
 };
@@ -35,13 +39,8 @@ export default function Footer() {
       <div className="container-page py-14">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-10 lg:gap-16">
           <div className="col-span-2 md:col-span-1 space-y-5">
-            <Link href="/" className="flex items-center gap-2">
-              <div className="h-10 w-10 rounded-lg bg-white/10 border border-white/10 flex items-center justify-center">
-                <BookOpen className="h-5 w-5 text-white" />
-              </div>
-              <span className="font-bold text-xl text-white">
-                Edu<span className="text-[#60A5FA]">Learn</span>
-              </span>
+            <Link href="/" className="inline-flex rounded-lg bg-white px-2">
+              <BrandLogo />
             </Link>
             <p className="text-sm text-slate-300 leading-relaxed">
               Learn practical skills with expert-led online courses. Build your future, one course at a time.

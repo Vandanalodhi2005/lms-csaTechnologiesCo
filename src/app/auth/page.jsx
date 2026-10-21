@@ -1,8 +1,9 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { BookOpen, Home as HomeIcon } from "lucide-react";
+import { Home as HomeIcon } from "lucide-react";
 import AuthBrandPanel from "@/components/auth/AuthBrandPanel.jsx";
 import AuthCard from "@/components/auth/AuthCard.jsx";
+import BrandLogo from "@/components/layout/BrandLogo.jsx";
 
 export const metadata = {
   title: "Login or Register | EduLearn",
@@ -36,12 +37,7 @@ function SimpleHeader() {
     <header className="w-full border-b border-[#E2E8F0]/70 bg-white/90 backdrop-blur">
       <div className="container-page h-16 flex items-center justify-between gap-3">
         <Link href="/" aria-label="EduLearn home" className="inline-flex items-center gap-2.5">
-          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#0F2F5F] text-white">
-            <BookOpen className="h-4.5 w-4.5" style={{ height: 18, width: 18 }} strokeWidth={2.2} />
-          </span>
-          <span className="text-lg font-extrabold tracking-tight text-[#0F172A]">
-            Edu<span className="text-[#2563EB]">Learn</span>
-          </span>
+          <BrandLogo />
         </Link>
 
         <Link

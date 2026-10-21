@@ -35,9 +35,10 @@ export async function getStudentEnrollments(studentId, { page = 1, limit = 10, i
     Enrollment.find(query)
       .populate({
         path: "courseId",
-        select: "title slug thumbnail instructorId rating reviewCount level language duration",
+        select: "title slug thumbnail shortDescription instructorId categoryId rating reviewCount level language duration",
         populate: [
           { path: "instructorId", select: "name avatar" },
+          { path: "categoryId", select: "name slug" },
         ],
       })
       .sort({ lastAccessAt: -1 })
@@ -53,6 +54,17 @@ export async function getStudentEnrollments(studentId, { page = 1, limit = 10, i
     limit,
     totalPages: Math.ceil(total / limit),
   };
+}
+
+export async function getStudentSummary(studentId) {
+  await dbConnect();
+  const [enrolledCourses, completedCourses, completedLessons, certificates] = await Promise.all([
+    Enrollment.countDocuments({ studentId }),
+    Enrollment.countDocuments({ studentId, isCompleted: true }),
+    Progress.countDocuments({ studentId, isCompleted: true }),
+    Certificate.countDocuments({ studentId, isRevoked: false }),
+  ]);
+  return { enrolledCourses, completedCourses, completedLessons, certificates };
 }
 
 export async function getEnrollment(studentId, courseId) {
@@ -106,13 +118,15 @@ export async function updateLessonProgress(studentId, { courseId, lessonId, prog
   await dbConnect();
   const enrollment = await Enrollment.findOne({ studentId, courseId });
   if (!enrollment) throw new Error("Not enrolled in this course");
+  const lesson = await Lesson.findOne({ _id: lessonId, courseId }).select("moduleId");
+  if (!lesson) throw new Error("Lesson not found in this course");
   let progress = await Progress.findOne({ studentId, lessonId });
   if (!progress) {
     progress = new Progress({
       studentId,
       courseId,
       lessonId,
-      moduleId: (await Lesson.findById(lessonId).select("moduleId"))?.moduleId,
+      moduleId: lesson.moduleId,
     });
   }
   if (typeof progressPercent !== "undefined") progress.progressPercent = progressPercent;
@@ -208,7 +222,7 @@ export async function issueCertificate(studentId, courseId, enrollmentId) {
 export async function verifyCertificate(verificationCode) {
   await dbConnect();
   const cert = await Certificate.findOne({ verificationCode, isRevoked: false })
-    .populate("studentId", "name avatar email")
+    .populate("studentId", "name avatar")
     .populate("courseId", "title thumbnail")
     .populate("instructorId", "name avatar")
     .lean();

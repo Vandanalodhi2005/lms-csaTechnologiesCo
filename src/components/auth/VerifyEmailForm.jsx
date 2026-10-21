@@ -103,7 +103,15 @@ function AlreadyVerifiedState() {
   );
 }
 
-function InvalidTokenState({ onResend, resendLoading, cooldownRemaining }) {
+function InvalidTokenState({
+  onResend,
+  resendLoading,
+  cooldownRemaining,
+  email,
+  onEmailChange,
+  showEmailInput,
+  serverError,
+}) {
   return (
     <div className="space-y-6 text-center">
       <IconBadge variant="amber">
@@ -120,13 +128,38 @@ function InvalidTokenState({ onResend, resendLoading, cooldownRemaining }) {
         </p>
       </div>
 
+      {showEmailInput && (
+        <div className="text-left">
+          <label htmlFor="verification-email" className="mb-1.5 block text-sm font-medium text-[#0F172A]">
+            Email address
+          </label>
+          <input
+            id="verification-email"
+            type="email"
+            autoComplete="email"
+            value={email}
+            onChange={(event) => onEmailChange(event.target.value)}
+            className="h-12 w-full rounded-xl border border-[#CBD5E1] px-4 text-sm text-[#0F172A] outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20"
+          />
+        </div>
+      )}
+
+      {serverError && (
+        <Alert
+          variant="danger"
+          title="Could not resend verification email"
+          description={serverError}
+          className="rounded-xl text-left"
+        />
+      )}
+
       <div className="pt-2 space-y-3">
         <Button
           type="button"
           size="lg"
           className="w-full h-12 rounded-xl shadow-sm"
           loading={resendLoading}
-          disabled={resendLoading || cooldownRemaining > 0}
+          disabled={resendLoading || cooldownRemaining > 0 || !email.trim()}
           leftIcon={<Send className="h-5 w-5" />}
           onClick={onResend}
         >
@@ -164,38 +197,56 @@ export default function VerifyEmailForm() {
   const [resendSuccess, setResendSuccess] = React.useState(false);
   const [serverError, setServerError] = React.useState("");
   const [cooldownRemaining, setCooldownRemaining] = React.useState(0);
+  const [resendEmail, setResendEmail] = React.useState(emailParam);
+  const verifiedTokenRef = React.useRef("");
+  const isMountedRef = React.useRef(false);
 
   const hasToken = typeof token === "string" && token.length > 0;
 
   React.useEffect(() => {
-    let cancelled = false;
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  React.useEffect(() => {
+    setResendEmail(emailParam);
+  }, [emailParam]);
+
+  React.useEffect(() => {
     async function verify() {
-      if (!hasToken) return;
+      if (!hasToken || verifiedTokenRef.current === token) return;
+      verifiedTokenRef.current = token;
       try {
         setState("verifying");
         setServerError("");
-        await new Promise((r) => setTimeout(r, 900));
-        if (cancelled) return;
-        const mock = token.toLowerCase();
-        if (mock.startsWith("expired") || mock.startsWith("bad")) {
-          setState("invalid");
-        } else if (mock.startsWith("already")) {
-          setState("already-verified");
+        const response = await fetch("/api/auth/verify-email", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token }),
+        });
+        const result = await response.json();
+        if (!isMountedRef.current || verifiedTokenRef.current !== token) return;
+        if (!response.ok || !result.success) {
+          if (response.status === 400 || response.status === 404) {
+            setServerError(result.message || "This verification link is invalid or has expired.");
+            setState("invalid");
+          } else {
+            throw new Error(result.message || "We couldn't complete email verification.");
+          }
         } else {
           setState("verified");
         }
-      } catch {
-        if (cancelled) return;
+      } catch (error) {
+        if (!isMountedRef.current || verifiedTokenRef.current !== token) return;
         setState("error");
         setServerError(
-          "We couldn't complete email verification. Please request a new verification link and try again."
+          error.message || "We couldn't complete email verification. Please request a new verification link and try again."
         );
       }
     }
     verify();
-    return () => {
-      cancelled = true;
-    };
   }, [hasToken, token]);
 
   React.useEffect(() => {
@@ -212,18 +263,24 @@ export default function VerifyEmailForm() {
       setResendSuccess(false);
       setServerError("");
       setResendLoading(true);
-      await new Promise((r) => setTimeout(r, 1000));
+      const response = await fetch("/api/auth/resend-verification", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: resendEmail }),
+      });
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || "Unable to send verification email.");
+      }
       setResendSuccess(true);
       setCooldownRemaining(COOLDOWN_SECONDS);
       window.setTimeout(() => setResendSuccess(false), 4000);
-    } catch {
-      setServerError(
-        "We couldn't send the verification email. Please try again in a moment."
-      );
+    } catch (error) {
+      setServerError(error.message || "We couldn't send the verification email. Please try again in a moment.");
     } finally {
       setResendLoading(false);
     }
-  }, [resendLoading, cooldownRemaining]);
+  }, [resendLoading, cooldownRemaining, resendEmail]);
 
   if (state === "verified") {
     return <VerificationSuccessState />;
@@ -237,6 +294,10 @@ export default function VerifyEmailForm() {
         onResend={handleResend}
         resendLoading={resendLoading}
         cooldownRemaining={cooldownRemaining}
+        email={resendEmail}
+        onEmailChange={setResendEmail}
+        showEmailInput={!emailParam}
+        serverError={serverError}
       />
     );
   }
@@ -264,6 +325,22 @@ export default function VerifyEmailForm() {
         </p>
       </div>
 
+      {!emailParam && (
+        <div>
+          <label htmlFor="verification-email" className="mb-1.5 block text-sm font-medium text-[#0F172A]">
+            Email address
+          </label>
+          <input
+            id="verification-email"
+            type="email"
+            autoComplete="email"
+            value={resendEmail}
+            onChange={(event) => setResendEmail(event.target.value)}
+            className="h-12 w-full rounded-xl border border-[#CBD5E1] px-4 text-sm text-[#0F172A] outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20"
+          />
+        </div>
+      )}
+
       {state === "verifying" && (
         <Alert
           variant="info"
@@ -287,7 +364,7 @@ export default function VerifyEmailForm() {
           <Alert
             variant="success"
             title="Verification email sent"
-            description="Verification email sent successfully. Please check your inbox and spam folder."
+            description="If this account needs verification, an email will be sent shortly. Please check your inbox and spam folder."
             className="rounded-xl"
           />
         </div>
@@ -315,7 +392,8 @@ export default function VerifyEmailForm() {
           disabled={
             resendLoading ||
             cooldownRemaining > 0 ||
-            state === "verifying"
+            state === "verifying" ||
+            !resendEmail.trim()
           }
           leftIcon={<Send className="h-5 w-5" />}
           onClick={handleResend}

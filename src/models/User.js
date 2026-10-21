@@ -21,7 +21,19 @@ const userSchema = new mongoose.Schema(
     },
     passwordHash: {
       type: String,
-      required: [true, "Password hash is required"],
+      default: null,
+      select: false,
+    },
+    googleId: {
+      type: String,
+      unique: true,
+      sparse: true,
+      select: false,
+    },
+    githubId: {
+      type: String,
+      unique: true,
+      sparse: true,
       select: false,
     },
     role: {
@@ -64,6 +76,11 @@ const userSchema = new mongoose.Schema(
       select: false,
     },
     emailVerificationExpires: {
+      type: Date,
+      default: null,
+      select: false,
+    },
+    emailVerificationSentAt: {
       type: Date,
       default: null,
       select: false,

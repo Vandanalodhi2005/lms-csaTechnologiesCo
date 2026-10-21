@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import Image from "next/image";
 import {
   Heart,
   ShoppingCart,
@@ -93,7 +94,7 @@ const INITIAL_WISHLIST = [
   },
 ];
 
-export default function StudentWishlistPage() {
+function LegacyStudentWishlistPage() {
   const [wishlist, setWishlist] = React.useState(INITIAL_WISHLIST);
 
   const handleRemove = (id, title) => {
@@ -145,7 +146,7 @@ export default function StudentWishlistPage() {
           </div>
           <h3 className="text-lg font-bold text-slate-900">Your wishlist is empty</h3>
           <p className="text-xs text-slate-500 max-w-sm mx-auto">
-            You don't have any saved courses yet. Explore our course library and bookmark your favorite learning paths!
+            You don&apos;t have any saved courses yet. Explore our course library and bookmark your favorite learning paths!
           </p>
           <Link
             href="/courses"
@@ -252,6 +253,89 @@ export default function StudentWishlistPage() {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function formatPrice(amount) {
+  return new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(amount || 0);
+}
+
+export default function StudentWishlistPage() {
+  const [wishlist, setWishlist] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+  const [pendingId, setPendingId] = React.useState("");
+  const [error, setError] = React.useState("");
+  const [message, setMessage] = React.useState("");
+
+  const loadWishlist = React.useCallback(async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const response = await fetch("/api/users?action=wishlist&page=1&limit=50", { cache: "no-store" });
+      const result = await response.json();
+      if (!response.ok || !result.success) throw new Error(result.message || "Could not load your wishlist.");
+      setWishlist(result.data.wishlist || []);
+    } catch (loadError) {
+      setError(loadError.message || "Could not load your wishlist.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  React.useEffect(() => { loadWishlist(); }, [loadWishlist]);
+
+  const removeFromWishlist = async (item) => {
+    const courseId = item.courseId?._id;
+    if (!courseId || pendingId) return;
+    setPendingId(String(item._id));
+    setError("");
+    try {
+      const response = await fetch("/api/users?action=toggleWishlist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ courseId }),
+      });
+      const result = await response.json();
+      if (!response.ok || !result.success || result.data?.wishlisted) throw new Error(result.message || "Could not remove this course.");
+      setWishlist((current) => current.filter((entry) => String(entry._id) !== String(item._id)));
+      setMessage("Course removed from your wishlist.");
+    } catch (removeError) {
+      setError(removeError.message || "Could not update your wishlist.");
+    } finally {
+      setPendingId("");
+    }
+  };
+
+  const shareCourse = async (course) => {
+    const url = `${window.location.origin}/courses/${course.slug}`;
+    try {
+      if (navigator.share) await navigator.share({ title: course.title, url });
+      else await navigator.clipboard.writeText(url);
+      setMessage(navigator.share ? "Course link shared." : "Course link copied.");
+    } catch (shareError) {
+      if (shareError.name !== "AbortError") setError("Could not share this course from your browser.");
+    }
+  };
+
+  return (
+    <div className="mx-auto max-w-6xl space-y-6 pb-8">
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-xs font-semibold uppercase tracking-[0.14em] text-blue-700">Saved courses</p><h1 className="mt-1 text-3xl font-bold tracking-tight text-slate-900">My Wishlist</h1><p className="mt-2 text-sm text-slate-600">Courses you have saved for later.</p></div><Link href="/courses" className="inline-flex min-h-11 items-center gap-2 self-start rounded-xl bg-[#0F2F5F] px-4 text-sm font-semibold text-white hover:bg-[#143A72]">Browse courses <ArrowRight className="h-4 w-4" /></Link></header>
+      {error ? <div className="flex flex-col gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800 sm:flex-row sm:items-center sm:justify-between" role="alert"><span>{error}</span><button type="button" onClick={loadWishlist} className="min-h-10 rounded-lg border border-red-300 px-3 font-semibold hover:bg-red-100">Retry</button></div> : null}
+      {message ? <p role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{message}</p> : null}
+      {loading ? <div className="flex min-h-48 items-center justify-center text-sm text-slate-600" role="status"><span className="mr-2 h-5 w-5 animate-spin rounded-full border-2 border-slate-300 border-t-blue-600" />Loading wishlist</div> : wishlist.length ? <div className="grid gap-4">{wishlist.map((item) => {
+        const course = item.courseId;
+        const price = course.discountPrice ?? course.price;
+        return <article key={item._id} className="flex min-w-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm sm:flex-row">
+          <Link href={`/courses/${course.slug}`} className="relative block aspect-video bg-slate-100 sm:aspect-auto sm:w-56 sm:shrink-0" aria-label={`View ${course.title}`}>
+            {course.thumbnail ? <Image src={course.thumbnail} alt="" fill sizes="(max-width: 640px) 100vw, 224px" className="object-cover" /> : <span className="flex h-full min-h-32 items-center justify-center text-slate-400"><BookOpen className="h-8 w-8" aria-hidden="true" /></span>}
+          </Link>
+          <div className="flex min-w-0 flex-1 flex-col justify-between gap-5 p-4 sm:p-5">
+            <div><p className="text-xs font-semibold uppercase tracking-wide text-blue-700">{course.categoryId?.name || course.level || "Course"}</p><Link href={`/courses/${course.slug}`} className="mt-1 block text-lg font-bold text-slate-900 hover:text-blue-700">{course.title}</Link><p className="mt-2 text-sm text-slate-600">{course.instructorId?.name || "Instructor"}</p><p className="mt-3 line-clamp-2 text-sm leading-6 text-slate-600">{course.shortDescription}</p></div>
+            <div className="flex flex-col gap-3 border-t border-slate-100 pt-3 sm:flex-row sm:items-center sm:justify-between"><p className="font-bold text-slate-900">{formatPrice(price)}</p><div className="flex flex-wrap gap-2"><button type="button" disabled={pendingId === String(item._id)} onClick={() => removeFromWishlist(item)} className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-slate-200 px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60"><Trash2 className="h-4 w-4" aria-hidden="true" />{pendingId === String(item._id) ? "Removing…" : "Remove"}</button><button type="button" onClick={() => shareCourse(course)} className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-slate-200 px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"><Share2 className="h-4 w-4" aria-hidden="true" />Share</button><Link href={`/courses/${course.slug}`} className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-[#0F2F5F] px-3 text-sm font-semibold text-white hover:bg-[#143A72]">View course <ExternalLink className="h-4 w-4" aria-hidden="true" /></Link></div></div>
+          </div>
+        </article>;
+      })}</div> : <section className="rounded-2xl border border-dashed border-slate-300 bg-white px-5 py-12 text-center"><Heart className="mx-auto h-9 w-9 text-rose-500" aria-hidden="true" /><h2 className="mt-3 text-lg font-semibold text-slate-900">Your wishlist is empty</h2><p className="mt-1 text-sm text-slate-600">Save courses from the catalog and they will appear here.</p><Link href="/courses" className="mt-4 inline-flex min-h-10 items-center rounded-lg bg-[#0F2F5F] px-4 text-sm font-semibold text-white">Explore courses</Link></section>}
     </div>
   );
 }

@@ -22,6 +22,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import Avatar from "@/components/ui/Avatar.jsx";
+import BrandLogo from "./BrandLogo.jsx";
 
 const navSections = [
   {
@@ -83,24 +84,12 @@ export default function InstructorSidebar({ collapsed = false, onToggle }) {
       <div className="flex items-center justify-between h-16 border-b border-slate-100 px-4">
         {!collapsed ? (
           <Link href="/instructor/dashboard" className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-sm">
-              <GraduationCap className="w-4 h-4 text-white" />
-            </div>
-            <div className="flex flex-col">
-              <span className="font-extrabold text-base tracking-tight text-slate-900 leading-tight">
-                Edu<span className="text-blue-600">Learn</span>
-              </span>
-              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest leading-none">
-                Instructor Hub
-              </span>
-            </div>
+            <BrandLogo />
           </Link>
         ) : (
-          <div className="mx-auto">
-            <div className="w-8 h-8 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-sm">
-              <GraduationCap className="w-4 h-4 text-white" />
-            </div>
-          </div>
+          <Link href="/instructor/dashboard" className="mx-auto" aria-label="Instructor Dashboard">
+            <BrandLogo compact />
+          </Link>
         )}
 
         {onToggle && !collapsed && (

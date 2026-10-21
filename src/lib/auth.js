@@ -2,15 +2,17 @@ import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import { COOKIE_NAME } from "@/constants";
 
-const FALLBACK_JWT_SECRET = "development-secret-change-me";
-const JWT_SECRET = process.env.JWT_SECRET || (process.env.NODE_ENV === "production" ? undefined : FALLBACK_JWT_SECRET);
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "7d";
 
-if (!JWT_SECRET) {
-  throw new Error("JWT_SECRET environment variable is required");
+export function assertJwtSecret() {
+  const jwtSecret = process.env.JWT_SECRET;
+  if (!jwtSecret) {
+    const error = new Error("JWT_SECRET is not configured. Add it to .env.local to enable authentication.");
+    error.code = "JWT_SECRET_MISSING";
+    throw error;
+  }
+  return new TextEncoder().encode(jwtSecret);
 }
-
-const secretKey = new TextEncoder().encode(JWT_SECRET);
 
 function parseExpiresIn(expiresIn) {
   const match = expiresIn.match(/^(\d+)([smhdwy])$/);
@@ -21,7 +23,12 @@ function parseExpiresIn(expiresIn) {
   return value * secondsMap[unit];
 }
 
+export function getTokenMaxAge() {
+  return parseExpiresIn(JWT_EXPIRES_IN);
+}
+
 export async function createToken(payload) {
+  const secretKey = assertJwtSecret();
   const expSeconds = parseExpiresIn(JWT_EXPIRES_IN);
   return new SignJWT(payload)
     .setProtectedHeader({ alg: "HS256" })
@@ -32,6 +39,7 @@ export async function createToken(payload) {
 
 export async function verifyToken(token) {
   try {
+    const secretKey = assertJwtSecret();
     const { payload } = await jwtVerify(token, secretKey, {
       algorithms: ["HS256"],
     });
@@ -43,13 +51,12 @@ export async function verifyToken(token) {
 
 export async function setAuthCookie(payload) {
   const token = await createToken(payload);
-  const expSeconds = parseExpiresIn(JWT_EXPIRES_IN);
   cookies().set(COOKIE_NAME, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
-    maxAge: expSeconds,
+    maxAge: getTokenMaxAge(),
   });
 }
 

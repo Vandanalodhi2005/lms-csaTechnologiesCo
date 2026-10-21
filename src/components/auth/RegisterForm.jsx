@@ -11,16 +11,21 @@ import { ROLES } from "@/constants";
 import Button from "@/components/ui/Button.jsx";
 import FormInput from "@/components/forms/FormInput.jsx";
 import PasswordInput from "@/components/forms/PasswordInput.jsx";
+import OAuthButtons from "@/components/auth/OAuthButtons.jsx";
 
 const ROLE_OPTIONS = [
   { value: ROLES.STUDENT, label: "Student", description: "I want to learn new skills", icon: GraduationCap },
   { value: ROLES.INSTRUCTOR, label: "Instructor", description: "I want to teach and create courses", icon: Briefcase },
 ];
 
+import { toast } from "sonner";
+import { useAuth } from "@/lib/auth-client.jsx";
+
 export default function RegisterForm() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const { register: registerAuth } = useAuth();
 
   const [loading, setLoading] = React.useState(false);
 
@@ -30,6 +35,7 @@ export default function RegisterForm() {
     watch,
     formState: { errors, isSubmitting },
     setValue,
+    setError,
   } = useForm({
     resolver: zodResolver(registerSchema),
     defaultValues: { name: "", email: "", password: "", confirmPassword: "", role: ROLES.STUDENT },
@@ -44,10 +50,26 @@ export default function RegisterForm() {
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   };
 
-  const onSubmit = handleSubmit(async (_data) => {
+  const onSubmit = handleSubmit(async (data) => {
     try {
       setLoading(true);
-      await new Promise((r) => setTimeout(r, 900));
+      const res = await registerAuth(data);
+      if (res?.success) {
+        if (res.data?.verificationEmailSent) {
+          toast.success("Account created. Check your email to verify your account.");
+        } else {
+          toast.error("Account created, but the verification email could not be sent. You can resend it on the next page.");
+        }
+        router.push(`/auth/verify-email?email=${encodeURIComponent(data.email)}`);
+      } else {
+        const errorMsg = res?.message || "Registration failed. Please try again.";
+        toast.error(errorMsg);
+        if (errorMsg.toLowerCase().includes("email")) {
+          setError("email", { message: errorMsg });
+        }
+      }
+    } catch (err) {
+      toast.error(err?.message || "Registration failed. Please check details.");
     } finally {
       setLoading(false);
     }
@@ -157,6 +179,8 @@ export default function RegisterForm() {
       >
         {loading || isSubmitting ? "Creating account…" : "Create Account"}
       </Button>
+
+      <OAuthButtons />
 
       <p className="text-center text-xs text-[#64748B] leading-relaxed px-1">
         By creating an account, you agree to our{" "}

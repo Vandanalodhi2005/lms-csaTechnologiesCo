@@ -13,23 +13,49 @@ import CourseReviews from "@/components/courses/CourseReviews.jsx";
 import RelatedCourses from "@/components/courses/RelatedCourses.jsx";
 import CourseEnrollmentCard from "@/components/courses/CourseEnrollmentCard.jsx";
 import { cn } from "@/utils";
+import { contentService, courseService } from "@/services";
 
-function findCourse(slug) {
+async function findCourse(slug) {
   if (!slug) return null;
   const normalized = String(slug);
-  return (
-    COURSES.find(
+  try {
+    const course = await courseService.getBySlug(normalized);
+    const modules = await contentService.getCourseCurriculum(course._id);
+    const curriculum = modules.map((module) => ({
+      id: String(module._id),
+      title: module.title,
+      lessons: (module.lessons || []).map((lesson) => ({
+        id: String(lesson._id),
+        title: lesson.title,
+        duration: lesson.duration ? `${lesson.duration}:00` : "",
+        isPreview: Boolean(lesson.isFree),
+      })),
+    }));
+    return {
+      ...course,
+      category: course.categoryId?.name || "Course",
+      instructor: course.instructorId?.name || "Course Instructor",
+      instructorAvatar: course.instructorId?.avatar,
+      instructorBio: course.instructorId?.bio,
+      instructorRole: "Instructor",
+      instructorStudents: 0,
+      instructorCourses: course.instructorId?.stats?.coursesCreated || 0,
+      lessons: course.lessonCount || curriculum.reduce((total, section) => total + section.lessons.length, 0),
+      curriculum,
+    };
+  } catch {
+    return COURSES.find(
       (c) =>
         c.slug === normalized ||
         (c._id && c._id === normalized) ||
         (c.id && c.id === normalized)
-    ) || null
-  );
+    ) || null;
+  }
 }
 
 export async function generateMetadata({ params }) {
   const slug = params?.slug;
-  const course = findCourse(slug);
+  const course = await findCourse(slug);
 
   const title = course ? `${course.title} | EduLearn` : "Course Not Found | EduLearn";
   const description = course
@@ -66,7 +92,7 @@ export async function generateMetadata({ params }) {
 
 export default async function CourseDetailPage({ params }) {
   const slug = params?.slug;
-  const course = findCourse(slug);
+  const course = await findCourse(slug);
 
   if (!course) {
     notFound();

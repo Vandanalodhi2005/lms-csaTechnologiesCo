@@ -25,6 +25,7 @@ import {
   Video,
 } from "lucide-react";
 import Avatar from "@/components/ui/Avatar.jsx";
+import BrandLogo from "./BrandLogo.jsx";
 
 const navItems = [
   { label: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard, exact: true },
@@ -70,43 +71,14 @@ export default function AdminSidebar({ collapsed = false, onToggle }) {
     >
       {/* Brand Header */}
       <div className="flex items-center justify-between h-16 px-4 border-b border-slate-100">
-        {!collapsed && (
+        {!collapsed ? (
           <Link href="/admin/dashboard" className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-slate-950 flex items-center justify-center text-white shadow-sm">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="w-4 h-4"
-              >
-                <path d="M12 2L3 7v10l9 5 9-5V7l-9-5z" />
-                <path d="M12 12m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0" />
-              </svg>
-            </div>
-            <span className="font-bold text-xl tracking-tight text-slate-900">Lurni</span>
+            <BrandLogo />
           </Link>
-        )}
-
-        {collapsed && (
-          <div className="mx-auto">
-            <div className="w-8 h-8 rounded-xl bg-slate-950 flex items-center justify-center text-white shadow-sm">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="w-4 h-4"
-              >
-                <path d="M12 2L3 7v10l9 5 9-5V7l-9-5z" />
-                <path d="M12 12m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0" />
-              </svg>
-            </div>
-          </div>
+        ) : (
+          <Link href="/admin/dashboard" className="mx-auto" aria-label="Admin Dashboard">
+            <BrandLogo compact />
+          </Link>
         )}
 
         <button

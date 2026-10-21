@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Bell,
   CheckCircle2,
@@ -77,7 +78,7 @@ const INITIAL_NOTIFICATIONS = [
   },
 ];
 
-export default function StudentNotificationsPage() {
+function LegacyStudentNotificationsPage() {
   const [notifications, setNotifications] = React.useState(INITIAL_NOTIFICATIONS);
   const [filter, setFilter] = React.useState("all"); // "all" | "unread" | "grade" | "deadline" | "course"
 
@@ -236,7 +237,7 @@ export default function StudentNotificationsPage() {
           </div>
           <h3 className="text-base font-bold text-slate-900">No notifications here</h3>
           <p className="text-xs text-slate-500 max-w-sm mx-auto">
-            You're all caught up! Check back later when new course material or assignment grades are published.
+            You&apos;re all caught up! Check back later when new course material or assignment grades are published.
           </p>
         </div>
       ) : (
@@ -317,6 +318,91 @@ export default function StudentNotificationsPage() {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+export default function StudentNotificationsPage() {
+  const router = useRouter();
+  const [notifications, setNotifications] = React.useState([]);
+  const [filter, setFilter] = React.useState("all");
+  const [loading, setLoading] = React.useState(true);
+  const [saving, setSaving] = React.useState(false);
+  const [error, setError] = React.useState("");
+
+  const loadNotifications = React.useCallback(async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const response = await fetch("/api/users?action=notifications&page=1&limit=50", { cache: "no-store" });
+      const result = await response.json();
+      if (!response.ok || !result.success) throw new Error(result.message || "Could not load notifications.");
+      setNotifications(result.data.notifications || []);
+    } catch (loadError) {
+      setError(loadError.message || "Could not load notifications.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  React.useEffect(() => { loadNotifications(); }, [loadNotifications]);
+  const unreadCount = notifications.filter((notification) => !notification.isRead).length;
+  const filtered = notifications.filter((notification) => filter === "all" || !notification.isRead);
+
+  const markRead = async (notificationId) => {
+    const response = await fetch("/api/users?action=markNotificationRead", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ notificationId }),
+    });
+    const result = await response.json();
+    if (!response.ok || !result.success) throw new Error(result.message || "Could not update this notification.");
+    setNotifications((current) => current.map((item) => String(item._id) === notificationId ? result.data : item));
+  };
+
+  const handleMarkAllRead = async () => {
+    if (saving || unreadCount === 0) return;
+    setSaving(true);
+    setError("");
+    try {
+      const response = await fetch("/api/users?action=markAllNotificationsRead", { method: "POST" });
+      const result = await response.json();
+      if (!response.ok || !result.success) throw new Error(result.message || "Could not update notifications.");
+      setNotifications((current) => current.map((item) => ({ ...item, isRead: true, readAt: new Date().toISOString() })));
+    } catch (markError) {
+      setError(markError.message || "Could not update notifications.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const openNotification = async (notification) => {
+    if (saving) return;
+    setSaving(true);
+    setError("");
+    try {
+      if (!notification.isRead) await markRead(String(notification._id));
+      const href = typeof notification.actionUrl === "string" && notification.actionUrl.startsWith("/") && !notification.actionUrl.startsWith("//") ? notification.actionUrl : "/student/dashboard";
+      router.push(href);
+    } catch (openError) {
+      setError(openError.message || "Could not open this notification.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="mx-auto max-w-5xl space-y-6 pb-8">
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-xs font-semibold uppercase tracking-[0.14em] text-blue-700">Your account</p><h1 className="mt-1 text-3xl font-bold tracking-tight text-slate-900">Notifications</h1><p className="mt-2 text-sm text-slate-600">Course and learning updates for your account.</p></div><button type="button" onClick={handleMarkAllRead} disabled={saving || unreadCount === 0} className="inline-flex min-h-11 items-center justify-center gap-2 self-start rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"><Check className="h-4 w-4" aria-hidden="true" />{saving ? "Updating…" : `Mark all read (${unreadCount})`}</button></header>
+      {error ? <div role="alert" className="flex flex-col gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800 sm:flex-row sm:items-center sm:justify-between"><span>{error}</span><button type="button" onClick={loadNotifications} className="min-h-10 rounded-lg border border-red-300 px-3 font-semibold hover:bg-red-100">Retry</button></div> : null}
+      <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 p-4"><button type="button" aria-pressed={filter === "all"} onClick={() => setFilter("all")} className={cn("min-h-10 rounded-lg border px-3 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-600", filter === "all" ? "border-blue-200 bg-blue-50 text-blue-700" : "border-slate-200 text-slate-600")}>All ({notifications.length})</button><button type="button" aria-pressed={filter === "unread"} onClick={() => setFilter("unread")} className={cn("min-h-10 rounded-lg border px-3 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-600", filter === "unread" ? "border-blue-200 bg-blue-50 text-blue-700" : "border-slate-200 text-slate-600")}>Unread ({unreadCount})</button></div>
+        {loading ? <div className="flex min-h-48 items-center justify-center text-sm text-slate-600" role="status"><span className="mr-2 h-5 w-5 animate-spin rounded-full border-2 border-slate-300 border-t-blue-600" />Loading notifications</div> : filtered.length ? <ul className="divide-y divide-slate-100">{filtered.map((notification) => {
+          const kind = String(notification.type || "").toLowerCase();
+          const Icon = kind.includes("assignment") ? Award : kind.includes("quiz") ? Clock : kind.includes("course") ? BookOpen : kind.includes("certificate") ? Sparkles : Bell;
+          return <li key={notification._id} className={cn("flex items-start gap-3 p-4 sm:gap-4 sm:p-5", !notification.isRead && "bg-blue-50/40")}><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-blue-700"><Icon className="h-5 w-5" aria-hidden="true" /></span><div className="min-w-0 flex-1"><div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-4"><h2 className="font-semibold text-slate-900">{notification.title}</h2><time className="shrink-0 text-xs text-slate-500" dateTime={notification.createdAt}>{new Date(notification.createdAt).toLocaleString()}</time></div>{notification.message ? <p className="mt-1 whitespace-pre-wrap text-sm leading-6 text-slate-600">{notification.message}</p> : null}<button type="button" onClick={() => openNotification(notification)} disabled={saving} className="mt-3 inline-flex min-h-9 items-center gap-2 text-sm font-semibold text-blue-700 hover:text-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-600 disabled:opacity-50">Open notification <ArrowRight className="h-4 w-4" /></button></div>{!notification.isRead ? <span className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-blue-600" aria-label="Unread" /> : null}</li>;
+        })}</ul> : <div className="px-5 py-12 text-center"><Bell className="mx-auto h-9 w-9 text-slate-400" aria-hidden="true" /><h2 className="mt-3 text-lg font-semibold text-slate-900">{filter === "unread" ? "No unread notifications" : "No notifications yet"}</h2><p className="mt-1 text-sm text-slate-600">New account and course updates will appear here.</p><Link href="/student/dashboard" className="mt-4 inline-flex min-h-10 items-center gap-2 text-sm font-semibold text-blue-700">Back to dashboard <ArrowRight className="h-4 w-4" /></Link></div>}
+      </section>
     </div>
   );
 }

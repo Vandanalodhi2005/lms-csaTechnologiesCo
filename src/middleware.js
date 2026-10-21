@@ -2,8 +2,7 @@ import { NextResponse } from "next/server";
 import { jwtVerify } from "jose";
 import { COOKIE_NAME, ROLES } from "@/constants";
 
-const FALLBACK_JWT_SECRET = "development-secret-change-me";
-const JWT_SECRET = process.env.JWT_SECRET || (process.env.NODE_ENV === "production" ? undefined : FALLBACK_JWT_SECRET);
+const JWT_SECRET = process.env.JWT_SECRET;
 const secretKey = JWT_SECRET ? new TextEncoder().encode(JWT_SECRET) : null;
 
 const publicRoutes = [
@@ -46,6 +45,11 @@ async function verifyTokenFromCookie(token) {
 
 export async function middleware(req) {
   const { pathname } = req.nextUrl;
+
+  if (pathname === "/admin/login") {
+    return NextResponse.redirect(new URL("/auth/admin", req.url));
+  }
+
   const token = req.cookies.get(COOKIE_NAME)?.value;
   const user = await verifyTokenFromCookie(token);
 
@@ -75,10 +79,7 @@ export async function middleware(req) {
 
   if (requiredRoles.length > 0) {
     if (!user) {
-      if (process.env.NODE_ENV !== "production") {
-        return NextResponse.next();
-      }
-      const url = new URL("/auth", req.url);
+      const url = new URL("/auth/login", req.url);
       url.searchParams.set("redirect", pathname);
       return NextResponse.redirect(url);
     }

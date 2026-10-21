@@ -7,17 +7,7 @@ import { ROLES } from "@/constants";
 export default async function AdminLayout({ children }) {
   let user = await getAuthUser();
   if (!user || (user.role !== ROLES.ADMIN && user.role !== ROLES.SUPER_ADMIN)) {
-    if (process.env.NODE_ENV !== "production") {
-      user = {
-        id: "admin-chelsea",
-        name: "Chelsea Nayek",
-        email: "chelsea@lurni.com",
-        role: ROLES.ADMIN,
-        avatar: "",
-      };
-    } else {
-      redirect("/auth?redirect=/admin/dashboard");
-    }
+    redirect("/admin/login");
   }
   let userData = null;
   try {
